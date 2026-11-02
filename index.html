@@ -381,6 +381,7 @@
         const ADMIN_TRIGGER = '#mib-admin';
 
         let rawServicesList = [];
+        let rawCategoriesList = [];
         let selectedState = {};
         let isAdmin = false;
         let adminUser = null;
@@ -421,197 +422,258 @@
         // ЗАГРУЗКА И ОТРИСОВКА
         // ==========================================
         async function loadServices() {
-            const container = document.getElementById('services-container');
-            container.innerHTML = '<div class="p-8 text-center text-brand-muted text-xs bg-brand-card border border-brand-border rounded"><div class="spinner mb-2 border-t-brand-ivory"></div><p>Загрузка прайс-листа...</p></div>';
+    const container = document.getElementById('services-container');
+    container.innerHTML = '<div class="p-8 text-center text-brand-muted text-xs bg-brand-card border border-brand-border rounded"><div class="spinner mb-2 border-t-brand-ivory"></div><p>Загрузка прайс-листа...</p></div>';
 
-            try {
-                const { data: categories, error: catErr } = await supabaseClient.from('categories').select('*').order('name');
-                const { data: services, error: servErr } = await supabaseClient.from('services').select('*').order('created_at');
+    try {
+        const { data: categories, error: catErr } = await supabaseClient.from('categories').select('*').order('sort_order', { ascending: true });
+        const { data: services, error: servErr } = await supabaseClient.from('services').select('*').order('sort_order', { ascending: true });
 
-                if (catErr || servErr) throw new Error(catErr?.message || servErr?.message);
+        if (catErr || servErr) throw new Error(catErr?.message || servErr?.message);
 
-                rawServicesList = [];
-                services.forEach(s => {
-                    const cat = categories.find(c => c.id === s.category_id);
-                    rawServicesList.push({
-                        id: s.id,
-                        category: cat ? cat.name : 'Общие',
-                        categoryId: s.category_id,
-                        name: s.name,
-                        price: s.price,
-                        desc: s.description || '',
-                        type: s.type
-                    });
-                });
+        rawCategoriesList = categories || [];
+        rawServicesList = [];
+        
+        services.forEach(s => {
+            rawServicesList.push({
+                id: s.id,
+                categoryId: s.category_id,
+                name: s.name,
+                price: s.price,
+                desc: s.description || '',
+                type: s.type,
+                sort_order: s.sort_order
+            });
+        });
 
-                renderServicesUI();
-            } catch (err) {
-                container.innerHTML = '<div class="p-6 bg-red-950/30 border border-red-800/50 rounded text-xs text-red-300">Ошибка загрузки: ' + err.message + '</div>';
-            }
-        }
-
+        renderServicesUI();
+    } catch (err) {
+        container.innerHTML = '<div class="p-6 bg-red-950/30 border border-red-800/50 rounded text-xs text-red-300">Ошибка загрузки: ' + err.message + '</div>';
+    }
+}
         function renderServicesUI() {
-            const container = document.getElementById('services-container');
-            container.innerHTML = '';
-            if (rawServicesList.length === 0) {
-                container.innerHTML = '<div class="p-6 text-center text-brand-muted text-xs bg-brand-card border border-brand-border rounded">Прайс-лист пуст.</div>';
-                updateSummary(); return;
+    const container = document.getElementById('services-container');
+    container.innerHTML = '';
+    
+    if (rawCategoriesList.length === 0) {
+        container.innerHTML = '<div class="p-6 text-center text-brand-muted text-xs bg-brand-card border border-brand-border rounded">Прайс-лист пуст.</div>';
+        updateSummary(); return;
+    }
+
+    rawCategoriesList.forEach((cat, index) => {
+        const items = rawServicesList.filter(item => item.categoryId === cat.id);
+        
+        const catCard = document.createElement('div');
+        catCard.className = 'bg-brand-card border border-brand-border rounded p-5 space-y-4 relative group';
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between border-b border-brand-border/50 pb-2';
+        
+        const title = document.createElement('h3');
+        title.className = 'text-sm font-semibold tracking-wide text-brand-ivory';
+        title.textContent = cat.name;
+        header.appendChild(title);
+
+        if (isAdmin) {
+            const headerRight = document.createElement('div');
+            headerRight.className = 'flex items-center gap-2';
+
+            // Стрелка ВВЕРХ (SVG)
+            if (index > 0) {
+                const upBtn = document.createElement('button');
+                upBtn.className = 'text-brand-muted hover:text-brand-ivory transition-colors p-1 rounded hover:bg-white/5';
+                upBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>`;
+                upBtn.onclick = () => moveCategory(cat.id, 'up');
+                headerRight.appendChild(upBtn);
             }
 
-            const categories = {};
-            rawServicesList.forEach((item, index) => {
-                const cat = item.category || 'Общие';
-                if (!categories[cat]) categories[cat] = [];
-                categories[cat].push({ ...item, rawIndex: index });
-            });
-
-            Object.keys(categories).forEach(catName => {
-                const items = categories[catName];
-                const catCard = document.createElement('div');
-                catCard.className = 'bg-brand-card border border-brand-border rounded p-5 space-y-4 relative group';
-
-                const header = document.createElement('div');
-                header.className = 'flex items-center justify-between border-b border-brand-border/50 pb-2';
-                
-                const title = document.createElement('h3');
-                title.className = 'text-sm font-semibold tracking-wide text-brand-ivory';
-                title.textContent = catName;
-                header.appendChild(title);
-
-                if (isAdmin) {
-                    const headerRight = document.createElement('div');
-                    headerRight.className = 'flex items-center gap-2';
-
-                    const editCatBtn = document.createElement('button');
-                    editCatBtn.className = 'text-[10px] text-amber-400 hover:text-amber-300 border border-amber-900/50 px-2 py-0.5 rounded';
-                    editCatBtn.textContent = 'Изменить';
-                    editCatBtn.onclick = () => openEditCategory(items[0].categoryId, catName);
-                    
-                    const delCatBtn = document.createElement('button');
-                    delCatBtn.className = 'text-[10px] text-red-400 hover:text-red-300 border border-red-900/50 px-2 py-0.5 rounded';
-                    delCatBtn.textContent = 'Удалить раздел';
-                    delCatBtn.onclick = () => deleteCategory(items[0].categoryId, catName);
-                    
-                    headerRight.appendChild(editCatBtn);
-                    headerRight.appendChild(delCatBtn);
-                    header.appendChild(headerRight);
-                }
-
-                catCard.appendChild(header);
-
-                const itemsWrap = document.createElement('div');
-                itemsWrap.className = 'space-y-2';
-                items.forEach(item => itemsWrap.appendChild(item.type === 'counter' ? renderCounterRow(item) : renderCheckboxRow(item)));
-                catCard.appendChild(itemsWrap);
-
-                if (isAdmin) {
-                    const addItemBtn = document.createElement('button');
-                    addItemBtn.className = 'w-full mt-2 py-1.5 border border-dashed border-brand-border hover:border-amber-500/50 text-amber-400 text-[11px] rounded transition-colors';
-                    addItemBtn.textContent = '+ Добавить услугу';
-                    addItemBtn.onclick = () => addNewItemToCat(items[0].categoryId);
-                    catCard.appendChild(addItemBtn);
-                }
-                container.appendChild(catCard);
-            });
-            updateSummary();
-        }
-
-        function renderCounterRow(item) {
-            const curQty = selectedState[item.id] ? selectedState[item.id].qty : 0;
-            const row = document.createElement('div');
-            row.className = 'flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors text-xs';
-
-            const left = document.createElement('div');
-            left.className = 'pr-2';
-            const n = document.createElement('div');
-            n.className = 'font-medium text-brand-ivory';
-            n.textContent = item.name;
-            left.appendChild(n);
-            if (item.desc) {
-                const d = document.createElement('div');
-                d.className = 'text-brand-muted text-[10px]';
-                d.textContent = item.desc;
-                left.appendChild(d);
+            // Стрелка ВНИЗ (SVG)
+            if (index < rawCategoriesList.length - 1) {
+                const downBtn = document.createElement('button');
+                downBtn.className = 'text-brand-muted hover:text-brand-ivory transition-colors p-1 rounded hover:bg-white/5';
+                downBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
+                downBtn.onclick = () => moveCategory(cat.id, 'down');
+                headerRight.appendChild(downBtn);
             }
-            row.appendChild(left);
 
-            const right = document.createElement('div');
-            right.className = 'flex items-center gap-3 shrink-0';
-            const counter = document.createElement('div');
-            counter.className = 'flex items-center border border-brand-border rounded bg-black/40';
-
-            const btnMinus = document.createElement('button'); btnMinus.type='button'; btnMinus.className='px-2 py-0.5 text-brand-muted hover:text-white'; btnMinus.textContent='-'; btnMinus.onclick = () => changeQty(item.id, -1);
-            const qtyVal = document.createElement('span'); qtyVal.className='px-2 font-mono text-brand-ivory'; qtyVal.textContent=String(curQty); qtyVal.id = 'qty-' + item.id;
-            const btnPlus = document.createElement('button'); btnPlus.type='button'; btnPlus.className='px-2 py-0.5 text-brand-muted hover:text-white'; btnPlus.textContent='+'; btnPlus.onclick = () => changeQty(item.id, 1);
-
-            counter.appendChild(btnMinus); counter.appendChild(qtyVal); counter.appendChild(btnPlus);
-            right.appendChild(counter);
-
-            const priceEl = document.createElement('span');
-            priceEl.className = 'font-mono text-brand-ivory w-20 text-right';
-            priceEl.textContent = formatPrice(item.price) + '/шт';
-            right.appendChild(priceEl);
+            // Кнопка Изменить (Карандаш + Текст)
+            const editCatBtn = document.createElement('button');
+            editCatBtn.className = 'text-[10px] text-amber-400 hover:text-amber-300 border border-amber-900/50 px-2 py-1 rounded flex items-center gap-1.5 transition-colors';
+            editCatBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>Изменить`;
+            editCatBtn.onclick = () => openEditCategory(cat.id, cat.name);
             
-            if (isAdmin) {
-                const editBtn = document.createElement('button'); 
-                editBtn.className = 'text-amber-400 hover:text-amber-300 text-xs px-1'; 
-                editBtn.textContent = '✎';
-                editBtn.onclick = () => openEditService(item);
-                right.appendChild(editBtn);
-                
-                const delBtn = document.createElement('button'); 
-                delBtn.className = 'text-red-400 hover:text-red-300 text-xs px-1'; 
-                delBtn.textContent = 'X';
-                delBtn.onclick = () => deleteItem(item.id);
-                right.appendChild(delBtn);
-            }
-            row.appendChild(right);
-            return row;
+            // Кнопка Удалить (Корзина + Текст)
+            const delCatBtn = document.createElement('button');
+            delCatBtn.className = 'text-[10px] text-red-400 hover:text-red-300 border border-red-900/50 px-2 py-1 rounded flex items-center gap-1.5 transition-colors';
+            delCatBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>Удалить`;
+            delCatBtn.onclick = () => deleteCategory(cat.id, cat.name);
+            
+            headerRight.appendChild(editCatBtn);
+            headerRight.appendChild(delCatBtn);
+            header.appendChild(headerRight);
         }
 
-        function renderCheckboxRow(item) {
-            const isChecked = !!(selectedState[item.id] && selectedState[item.id].qty > 0);
-            const label = document.createElement('label');
-            label.className = 'flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors cursor-pointer group text-xs';
+        catCard.appendChild(header);
 
-            const left = document.createElement('div');
-            left.className = 'flex items-center gap-3';
+        const itemsWrap = document.createElement('div');
+        itemsWrap.className = 'space-y-2';
+        items.forEach((item, sIndex) => {
+            itemsWrap.appendChild(
+                item.type === 'counter' 
+                ? renderCounterRow(item, sIndex, items.length) 
+                : renderCheckboxRow(item, sIndex, items.length)
+            );
+        });
+        catCard.appendChild(itemsWrap);
 
-            const cb = document.createElement('input'); cb.type='checkbox'; cb.className='custom-checkbox'; cb.checked=isChecked;
-            cb.onchange = (e) => toggleItem(item.id, e.target.checked);
-
-            const textWrap = document.createElement('div');
-            const n = document.createElement('div'); n.className='font-medium group-hover:text-white'; n.textContent=item.name;
-            textWrap.appendChild(n);
-            if (item.desc) {
-                const d = document.createElement('div'); d.className='text-brand-muted text-[10px]'; d.textContent=item.desc;
-                textWrap.appendChild(d);
-            }
-            left.appendChild(cb); left.appendChild(textWrap);
-            label.appendChild(left);
-
-            const right = document.createElement('div');
-            right.className = 'flex items-center gap-2';
-
-            const priceEl = document.createElement('span'); priceEl.className='font-mono text-brand-ivory'; priceEl.textContent=formatPrice(item.price);
-            right.appendChild(priceEl);
-
-            if (isAdmin) {
-                const editBtn = document.createElement('button'); 
-                editBtn.className='text-amber-400 hover:text-amber-300 text-xs px-1'; 
-                editBtn.textContent='✎';
-                editBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openEditService(item); };
-                right.appendChild(editBtn);
-
-                const delBtn = document.createElement('button'); 
-                delBtn.className='text-red-400 hover:text-red-300 text-xs px-1'; 
-                delBtn.textContent='X';
-                delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); deleteItem(item.id); };
-                right.appendChild(delBtn);
-            }
-            label.appendChild(right);
-            return label;
+        if (isAdmin) {
+            const addItemBtn = document.createElement('button');
+            addItemBtn.className = 'w-full mt-2 py-1.5 border border-dashed border-brand-border hover:border-amber-500/50 text-amber-400 text-[11px] rounded transition-colors';
+            addItemBtn.textContent = '+ Добавить услугу';
+            addItemBtn.onclick = () => addNewItemToCat(cat.id);
+            catCard.appendChild(addItemBtn);
         }
+        container.appendChild(catCard);
+    });
+    updateSummary();
+}
+
+        function renderCounterRow(item, index, total) {
+    const curQty = selectedState[item.id] ? selectedState[item.id].qty : 0;
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors text-xs';
+
+    const left = document.createElement('div');
+    left.className = 'pr-2';
+    const n = document.createElement('div');
+    n.className = 'font-medium text-brand-ivory';
+    n.textContent = item.name;
+    left.appendChild(n);
+    if (item.desc) {
+        const d = document.createElement('div');
+        d.className = 'text-brand-muted text-[10px]';
+        d.textContent = item.desc;
+        left.appendChild(d);
+    }
+    row.appendChild(left);
+
+    const right = document.createElement('div');
+    right.className = 'flex items-center gap-3 shrink-0';
+    
+    const counter = document.createElement('div');
+    counter.className = 'flex items-center border border-brand-border rounded bg-black/40';
+    const btnMinus = document.createElement('button'); btnMinus.type='button'; btnMinus.className='px-2 py-0.5 text-brand-muted hover:text-white'; btnMinus.textContent='-'; btnMinus.onclick = () => changeQty(item.id, -1);
+    const qtyVal = document.createElement('span'); qtyVal.className='px-2 font-mono text-brand-ivory'; qtyVal.textContent=String(curQty); qtyVal.id = 'qty-' + item.id;
+    const btnPlus = document.createElement('button'); btnPlus.type='button'; btnPlus.className='px-2 py-0.5 text-brand-muted hover:text-white'; btnPlus.textContent='+'; btnPlus.onclick = () => changeQty(item.id, 1);
+    counter.appendChild(btnMinus); counter.appendChild(qtyVal); counter.appendChild(btnPlus);
+    right.appendChild(counter);
+
+    const priceEl = document.createElement('span');
+    priceEl.className = 'font-mono text-brand-ivory w-20 text-right';
+    priceEl.textContent = formatPrice(item.price) + '/шт';
+    right.appendChild(priceEl);
+    
+    if (isAdmin) {
+        const ctrlGroup = document.createElement('div');
+        ctrlGroup.className = 'flex items-center gap-1 border-l border-brand-border/50 pl-2 ml-1';
+        
+        if (index > 0) {
+            const up = document.createElement('button'); 
+            up.className = 'text-brand-muted hover:text-brand-ivory transition-colors p-1 rounded hover:bg-white/5'; 
+            up.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>`;
+            up.onclick = () => moveService(item.id, item.categoryId, 'up'); 
+            ctrlGroup.appendChild(up);
+        }
+        if (index < total - 1) {
+            const down = document.createElement('button'); 
+            down.className = 'text-brand-muted hover:text-brand-ivory transition-colors p-1 rounded hover:bg-white/5'; 
+            down.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
+            down.onclick = () => moveService(item.id, item.categoryId, 'down'); 
+            ctrlGroup.appendChild(down);
+        }
+
+        // Иконка редактирования
+        const editBtn = document.createElement('button'); 
+        editBtn.className = 'text-amber-400 hover:text-amber-300 transition-colors p-1.5 rounded hover:bg-white/5 ml-1'; 
+        editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`;
+        editBtn.onclick = () => openEditService(item); 
+        ctrlGroup.appendChild(editBtn);
+        
+        // Иконка удаления (корзина)
+        const delBtn = document.createElement('button'); 
+        delBtn.className = 'text-red-400 hover:text-red-300 transition-colors p-1.5 rounded hover:bg-white/5'; 
+        delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
+        delBtn.onclick = () => deleteItem(item.id); 
+        ctrlGroup.appendChild(delBtn);
+        
+        right.appendChild(ctrlGroup);
+    }
+    row.appendChild(right);
+    return row;
+}
+        function renderCheckboxRow(item, index, total) {
+    const isChecked = !!(selectedState[item.id] && selectedState[item.id].qty > 0);
+    const label = document.createElement('label');
+    label.className = 'flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors cursor-pointer group text-xs';
+
+    const left = document.createElement('div');
+    left.className = 'flex items-center gap-3';
+
+    const cb = document.createElement('input'); cb.type='checkbox'; cb.className='custom-checkbox'; cb.checked=isChecked;
+    cb.onchange = (e) => toggleItem(item.id, e.target.checked);
+
+    const textWrap = document.createElement('div');
+    const n = document.createElement('div'); n.className='font-medium group-hover:text-white'; n.textContent=item.name;
+    textWrap.appendChild(n);
+    if (item.desc) {
+        const d = document.createElement('div'); d.className='text-brand-muted text-[10px]'; d.textContent=item.desc;
+        textWrap.appendChild(d);
+    }
+    left.appendChild(cb); left.appendChild(textWrap);
+    label.appendChild(left);
+
+    const right = document.createElement('div');
+    right.className = 'flex items-center gap-2';
+
+    const priceEl = document.createElement('span'); priceEl.className='font-mono text-brand-ivory'; priceEl.textContent=formatPrice(item.price);
+    right.appendChild(priceEl);
+
+    if (isAdmin) {
+        const ctrlGroup = document.createElement('div');
+        ctrlGroup.className = 'flex items-center gap-1 border-l border-brand-border/50 pl-2 ml-1';
+        
+        if (index > 0) {
+            const up = document.createElement('button'); 
+            up.className = 'text-brand-muted hover:text-brand-ivory transition-colors p-1 rounded hover:bg-white/5'; 
+            up.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>`;
+            up.onclick = (e) => { e.preventDefault(); e.stopPropagation(); moveService(item.id, item.categoryId, 'up'); }; 
+            ctrlGroup.appendChild(up);
+        }
+        if (index < total - 1) {
+            const down = document.createElement('button'); 
+            down.className = 'text-brand-muted hover:text-brand-ivory transition-colors p-1 rounded hover:bg-white/5'; 
+            down.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
+            down.onclick = (e) => { e.preventDefault(); e.stopPropagation(); moveService(item.id, item.categoryId, 'down'); }; 
+            ctrlGroup.appendChild(down);
+        }
+
+        const editBtn = document.createElement('button'); 
+        editBtn.className='text-amber-400 hover:text-amber-300 transition-colors p-1.5 rounded hover:bg-white/5 ml-1'; 
+        editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`;
+        editBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openEditService(item); }; 
+        ctrlGroup.appendChild(editBtn);
+
+        const delBtn = document.createElement('button'); 
+        delBtn.className='text-red-400 hover:text-red-300 transition-colors p-1.5 rounded hover:bg-white/5'; 
+        delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
+        delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); deleteItem(item.id); }; 
+        ctrlGroup.appendChild(delBtn);
+
+        right.appendChild(ctrlGroup);
+    }
+    label.appendChild(right);
+    return label;
+}
 
         // ==========================================
         // ЛОГИКА КОРЗИНЫ
@@ -734,33 +796,81 @@
         document.getElementById('cancel-service-btn').onclick = () => document.getElementById('service-modal').classList.add('hidden');
 
         document.getElementById('save-service-btn').onclick = async () => {
-            const catId = document.getElementById('new-service-category-id').value;
-            const name = document.getElementById('new-service-name').value.trim();
-            const price = parseInt(document.getElementById('new-service-price').value, 10) || 0;
-            const desc = document.getElementById('new-service-desc').value.trim();
-            const type = document.getElementById('new-service-type').value;
+    const catId = document.getElementById('new-service-category-id').value;
+    const name = document.getElementById('new-service-name').value.trim();
+    const price = parseInt(document.getElementById('new-service-price').value, 10) || 0;
+    const desc = document.getElementById('new-service-desc').value.trim();
+    const type = document.getElementById('new-service-type').value;
 
-            if (!name) { showToast('Введите название услуги', true); return; }
+    if (!name) { showToast('Введите название услуги', true); return; }
 
-            let error;
-            if (editingServiceId) {
-                const { error: err } = await supabaseClient.from('services').update({ name: name, price: Math.max(0, price), description: desc, type: type }).eq('id', editingServiceId);
-                error = err;
-            } else {
-                const { error: err } = await supabaseClient.from('services').insert([{ category_id: catId, name: name, price: Math.max(0, price), description: desc, type: type }]);
-                error = err;
-            }
+    let error;
+    if (editingServiceId) {
+        // ОБНОВЛЕНИЕ существующей услуги
+        const { error: err } = await supabaseClient.from('services')
+            .update({ name: name, price: Math.max(0, price), description: desc, type: type })
+            .eq('id', editingServiceId);
+        error = err;
+    } else {
+        // СОЗДАНИЕ новой услуги (добавляем sort_order в конец списка раздела)
+        const catServices = rawServicesList.filter(s => s.categoryId === catId);
+        const maxSort = catServices.reduce((max, s) => Math.max(max, s.sort_order || 0), 0);
+        
+        const { error: err } = await supabaseClient.from('services')
+            .insert([{ 
+                category_id: catId, 
+                name: name, 
+                price: Math.max(0, price), 
+                description: desc, 
+                type: type,
+                sort_order: maxSort + 1 
+            }]);
+        error = err;
+    }
 
-            if (error) {
-                showToast('Ошибка сохранения', true);
-                console.error(error);
-            } else {
-                document.getElementById('service-modal').classList.add('hidden');
-                showToast(editingServiceId ? 'Услуга обновлена' : 'Услуга добавлена');
-                loadServices(); 
-            }
-        };
+    if (error) {
+        showToast('Ошибка сохранения', true);
+        console.error(error);
+    } else {
+        document.getElementById('service-modal').classList.add('hidden');
+        showToast(editingServiceId ? 'Услуга обновлена' : 'Услуга добавлена');
+        loadServices(); 
+    }
+};
+        
+async function moveCategory(categoryId, direction) {
+    const index = rawCategoriesList.findIndex(c => c.id === categoryId);
+    if (index === -1) return;
+    
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= rawCategoriesList.length) return;
+    
+    const temp = rawCategoriesList[index];
+    rawCategoriesList[index] = rawCategoriesList[newIndex];
+    rawCategoriesList[newIndex] = temp;
+    
+    // Обновляем в базе данных
+    const updates = rawCategoriesList.map((cat, i) => 
+        supabaseClient.from('categories').update({ sort_order: i }).eq('id', cat.id)
+    );
+    await Promise.all(updates);
+    loadServices(); 
+}
 
+async function moveService(serviceId, categoryId, direction) {
+    const catServices = rawServicesList.filter(s => s.categoryId === categoryId).sort((a,b) => a.sort_order - b.sort_order);
+    const index = catServices.findIndex(s => s.id === serviceId);
+    if (index === -1) return;
+    
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= catServices.length) return;
+    
+    await supabaseClient.from('services').update({ sort_order: index }).eq('id', catServices[newIndex].id);
+    await supabaseClient.from('services').update({ sort_order: newIndex }).eq('id', catServices[index].id);
+    
+    loadServices(); 
+}
+        
         async function deleteItem(id) {
             if (confirm('Удалить эту позицию?')) {
                 const { error } = await supabaseClient.from('services').delete().eq('id', id);
@@ -807,30 +917,36 @@
         document.getElementById('cancel-category-btn').onclick = () => document.getElementById('category-modal').classList.add('hidden');
 
         document.getElementById('save-category-btn').onclick = async () => {
-            const catName = document.getElementById('new-category-name').value.trim();
-            const catId = document.getElementById('new-category-id').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    const catName = document.getElementById('new-category-name').value.trim();
+    const catId = document.getElementById('new-category-id').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
 
-            if (!catName) { showToast('Введите название', true); return; }
-            if (!catId) { showToast('Введите короткий ID (на английском)', true); return; }
+    if (!catName) { showToast('Введите название', true); return; }
+    if (!catId) { showToast('Введите короткий ID (на английском)', true); return; }
 
-            let error;
-            if (editingCategoryId) {
-                const { error: err } = await supabaseClient.from('categories').update({ id: catId, name: catName }).eq('id', editingCategoryId);
-                error = err;
-            } else {
-                const { error: err } = await supabaseClient.from('categories').insert([{ id: catId, name: catName }]);
-                error = err;
-            }
+    let error;
+    if (editingCategoryId) {
+        // ОБНОВЛЕНИЕ существующего раздела
+        const { error: err } = await supabaseClient.from('categories')
+            .update({ id: catId, name: catName })
+            .eq('id', editingCategoryId);
+        error = err;
+    } else {
+        // СОЗДАНИЕ нового раздела (добавляем sort_order в конец списка)
+        const maxSort = rawCategoriesList.reduce((max, c) => Math.max(max, c.sort_order || 0), 0);
+        const { error: err } = await supabaseClient.from('categories')
+            .insert([{ id: catId, name: catName, sort_order: maxSort + 1 }]);
+        error = err;
+    }
 
-            if (error) {
-                console.error(error);
-                showToast('Ошибка: возможно, такой ID уже занят', true);
-            } else {
-                document.getElementById('category-modal').classList.add('hidden');
-                showToast(editingCategoryId ? 'Раздел обновлен' : 'Раздел создан');
-                loadServices(); 
-            }
-        };
+    if (error) {
+        console.error(error);
+        showToast('Ошибка: возможно, такой ID уже занят', true);
+    } else {
+        document.getElementById('category-modal').classList.add('hidden');
+        showToast(editingCategoryId ? 'Раздел обновлен' : 'Раздел создан');
+        loadServices(); 
+    }
+};
 
         document.getElementById('admin-auth-submit').onclick = async () => {
             const email = 'bastick125@gmail.com';
