@@ -369,7 +369,14 @@
         // ==========================================
         const SUPABASE_URL = 'https://ibanvzomiosaboheuypl.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_2phCUJB76CHCnp7icBiolg_atb27p9H';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: {
+        storage: window.sessionStorage,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false
+    }
+});
 
         const ADMIN_TRIGGER = '#mib-admin';
 
@@ -682,13 +689,22 @@
         }
 
         async function exitAdminMode() {
-            await supabaseClient.auth.signOut();
-            isAdmin = false;
-            adminUser = null;
-            document.getElementById('admin-indicator').classList.add('hidden');
-            document.getElementById('admin-toolbar').classList.add('hidden');
-            renderServicesUI();
-            showToast('Выход из режима редактора');
+    try {
+        await supabaseClient.auth.signOut();
+    } catch (e) {
+        console.error(e);
+    }
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    isAdmin = false;
+    adminUser = null;
+    
+    document.getElementById('admin-indicator').classList.add('hidden');
+    document.getElementById('admin-toolbar').classList.add('hidden');
+    
+    showToast('Выход из режима редактора');
+    setTimeout(() => window.location.reload(), 500);
         }
 
         function addNewItemToCat(categoryId) {
