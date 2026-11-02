@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+    <link rel="preconnect" href="https://ibanvzomiosaboheuypl.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://ibanvzomiosaboheuypl.supabase.co">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>МИБ — Модернизация · Интеграция · Безопасность</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/output.css">
     <script>
         tailwind.config = {
             theme: {
@@ -362,7 +364,7 @@
         <span id="toast-msg">Сообщение</span>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/supabase.js"></script>
     <script>
         // ==========================================
         // НАСТРОЙКИ SUPABASE
@@ -1040,6 +1042,11 @@ async function moveService(serviceId, categoryId, direction) {
 
                 document.getElementById('order-form').classList.add('hidden');
                 document.getElementById('success-message').classList.remove('hidden');
+                const checkIcon = document.querySelector('.check-icon');
+                if (checkIcon) {
+                    const newCheckIcon = checkIcon.cloneNode(true);
+                    checkIcon.parentNode.replaceChild(newCheckIcon, checkIcon);
+                }
                 document.getElementById('order-form').reset();
             } catch (err) {
                 showToast('Ошибка отправки. Попробуйте позже.', true);
