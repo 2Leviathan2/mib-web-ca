@@ -264,9 +264,13 @@
     <div id="category-modal" class="fixed inset-0 bg-black/80 modal-blur flex items-center justify-center p-4 z-[70] hidden">
         <div class="bg-brand-card border border-brand-border rounded-lg max-w-sm w-full p-6 space-y-4 relative">
             <h3 class="text-sm font-bold text-brand-ivory uppercase tracking-widest">// Новый раздел</h3>
-            <div>
+                        <div>
                 <label class="block text-brand-muted mb-1 uppercase text-[10px]">Название раздела</label>
-                <input type="text" id="new-category-name" placeholder="Например: 03. Сетевое оборудование" class="w-full bg-black border border-brand-border rounded px-3 py-2.5 text-brand-ivory focus:outline-none focus:border-amber-400 text-xs">
+                <input type="text" id="new-category-name" placeholder="Например: 03. Сетевое оборудование" class="w-full bg-black border border-brand-border rounded px-3 py-2.5 text-brand-ivory focus:outline-none focus:border-amber-400 text-xs mb-3">
+            </div>
+            <div>
+                <label class="block text-brand-muted mb-1 uppercase text-[10px]">Короткий ID (латиницей, без пробелов) *</label>
+                <input type="text" id="new-category-id" placeholder="Например: net, cctv, 1c" class="w-full bg-black border border-brand-border rounded px-3 py-2.5 text-brand-ivory focus:outline-none focus:border-amber-400 text-xs">
             </div>
             <div class="flex gap-2 pt-2">
                 <button id="save-category-btn" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2.5 rounded text-xs uppercase transition-colors">Создать</button>
@@ -738,13 +742,19 @@ document.getElementById('cancel-category-btn').onclick = () => {
 
 document.getElementById('save-category-btn').onclick = async () => {
     const catName = document.getElementById('new-category-name').value.trim();
-    if (!catName) { showToast('Введите название', true); return; }
+    const catId = document.getElementById('new-category-id').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, ''); // Оставляем только английские буквы и цифры
 
-    const { data, error } = await supabaseClient.from('categories').insert([{ name: catName }]).select();
+    if (!catName) { showToast('Введите название', true); return; }
+    if (!catId) { showToast('Введите короткий ID (на английском)', true); return; }
+
+    const { data, error } = await supabaseClient.from('categories').insert([{ id: catId, name: catName }]).select();
     if (error) {
-        showToast('Ошибка создания раздела', true);
+        console.error(error);
+        showToast('Ошибка: возможно, такой ID уже есть', true);
     } else {
         document.getElementById('category-modal').classList.add('hidden');
+        document.getElementById('new-category-name').value = '';
+        document.getElementById('new-category-id').value = '';
         showToast('Раздел создан');
         loadServices(); 
     }
