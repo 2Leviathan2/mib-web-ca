@@ -790,7 +790,7 @@ document.getElementById('order-form').onsubmit = async (e) => {
     const contact = document.getElementById('client-contact').value.trim();
     const comment = document.getElementById('client-comment').value.trim();
 
-    // 1. Валидация (осталась прежней)
+    // 1. Валидация
     const nameRegex = /^[а-яА-ЯёЁa-zA-Z\s\-]+$/;
     if (name.length < 2 || !nameRegex.test(name)) { showToast('Имя: только буквы (мин. 2 символа)', true); return; }
     
@@ -823,6 +823,11 @@ document.getElementById('order-form').onsubmit = async (e) => {
     }));
     const total = items.reduce((a, b) => a + b.total, 0);
 
+    // ВОТ ЗДЕСЬ МЫ СОЗДАЕМ ЧИТАЕМЫЙ ТЕКСТ
+    const itemsSummaryText = items.map(i => 
+        `${i.name} (${i.qty} шт) - ${i.total} руб.`
+    ).join('\n');
+
     const submitBtn = e.target.querySelector('button[type="submit"]');
     const origText = submitBtn.textContent;
     submitBtn.disabled = true; submitBtn.textContent = 'Отправка...';
@@ -833,7 +838,8 @@ document.getElementById('order-form').onsubmit = async (e) => {
             client_name: name,
             client_contact: contact,
             comment: comment,
-            items: items,
+            items: items,                       // Оставляем технический формат (для программы)
+            items_summary: itemsSummaryText,    // ДОБАВЛЯЕМ ЧИТАЕМЫЙ ТЕКСТ (для тебя)
             total: total
         }]);
 
@@ -849,7 +855,6 @@ document.getElementById('order-form').onsubmit = async (e) => {
         submitBtn.disabled = false; submitBtn.textContent = origText;
     }
 };
-
 // ==========================================
 // ОСТАЛЬНОЙ ИНТЕРФЕЙС
 // ==========================================
