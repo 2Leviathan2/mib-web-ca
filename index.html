@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>МИБ — Модернизация · Интеграция · Безопасность</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#0A0A0A', card: '#121212', border: '#262626',
+                            ivory: '#F3EFE6', muted: '#8E8D8A', accent: '#C8B097'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Courier New', 'monospace'],
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0A0A0A; }
+        ::-webkit-scrollbar-thumb { background: #262626; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #383838; }
+
+        .custom-checkbox {
+            appearance: none; background-color: transparent; margin: 0;
+            font: inherit; color: #F3EFE6; width: 1.15em; height: 1.15em;
+            border: 1px solid #404040; border-radius: 2px;
+            display: grid; place-content: center; cursor: pointer;
+            transition: all 0.15s ease-in-out;
+        }
+        .custom-checkbox::before {
+            content: ""; width: 0.65em; height: 0.65em;
+            transform: scale(0); transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em #F3EFE6; transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .custom-checkbox:checked::before { transform: scale(1); }
+        .custom-checkbox:checked { border-color: #F3EFE6; background-color: rgba(243, 239, 230, 0.1); }
+        
+        .modal-blur { backdrop-filter: blur(8px); }
+        
+        /* Спиннер загрузки без эмодзи */
+        .spinner {
+            border: 2px solid rgba(0,0,0,0.1);
+            border-top: 2px solid #0A0A0A;
+            border-radius: 50%;
+            width: 1em; height: 1em;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+                /* 1. Легкая тень при наведении на карточку (без мерцания) */
+        #services-container > div:hover {
+            border-color: #4a4a4a;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(200, 176, 151, 0.1);
+            background-color: #151515;
+        }
+
+        /* 2. Плавное появление модальных окон */
+        @keyframes modalFadeIn {
+            from { opacity: 0; backdrop-filter: blur(0px); }
+            to { opacity: 1; backdrop-filter: blur(8px); }
+        }
+        @keyframes modalPop {
+            from { transform: scale(0.96); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        #order-modal:not(.hidden),
+        #privacy-modal:not(.hidden) {
+            animation: modalFadeIn 0.3s ease-out forwards;
+            display: flex !important;
+        }
+
+        #order-modal:not(.hidden) > div,
+        #privacy-modal:not(.hidden) > div {
+            animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* 3. Легкое вдавливание кнопок при клике */
+        button:active {
+            transform: scale(0.97) !important;
+            transition: transform 0.05s ease;
+        }
+
+        /* 4. Пружинистая галочка в чекбоксе */
+        @keyframes checkBounce {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .custom-checkbox:checked::before {
+            animation: checkBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+                /* Пульсация цены */
+        @keyframes pricePop {
+            0% { transform: scale(1); color: #F3EFE6; }
+            50% { transform: scale(1.1); color: #C8B097; }
+            100% { transform: scale(1); color: #F3EFE6; }
+        }
+        
+        /* Обязательно добавляем inline-block, иначе масштабирование не сработает */
+        #total-price {
+            display: inline-block; 
+        }
+
+        .price-updated {
+            animation: pricePop 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-brand-bg text-brand-ivory font-mono antialiased min-h-screen flex flex-col justify-between selection:bg-brand-ivory selection:text-brand-bg">
+
+    <header class="border-b border-brand-border py-6 px-4 md:px-8">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <div class="text-2xl font-bold tracking-widest text-brand-ivory flex items-center gap-2">
+                    <span class="cursor-default select-none">М И Б</span>
+                    <span class="text-xs px-2 py-0.5 rounded border border-brand-border text-brand-muted font-normal">ВЛАДИВОСТОК</span>
+                </div>
+                <p class="text-xs text-brand-muted mt-1 uppercase tracking-wider">Модернизация · Интеграция · Бизнес</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="admin-indicator" class="hidden text-xs bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 rounded flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span>Режим Редактора</span>
+                    <button id="exit-admin-btn" class="ml-2 text-brand-muted hover:text-white underline">Выйти</button>
+                </div>
+                <div class="text-left md:text-right text-xs text-brand-muted leading-relaxed">
+                    <p class="text-brand-ivory">IT поддержка бизнеса</p>
+                    <p>1С / СБИС / Кассы / Видеонаблюдение</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div id="admin-toolbar" class="hidden bg-brand-card border-b border-amber-500/30 py-3 px-4 md:px-8">
+        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2 text-amber-400 font-semibold">
+                <span>Управление прайс-листом</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="add-category-btn" class="px-3 py-1.5 bg-brand-border hover:bg-neutral-800 text-brand-ivory rounded transition-colors">+ Раздел</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-6xl mx-auto w-full px-4 md:px-8 py-8 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <section class="lg:col-span-7 space-y-6">
+            <div class="flex justify-between items-center border-b border-brand-border pb-3">
+                <h2 class="text-sm uppercase tracking-widest text-brand-muted">// Выбор услуг и решений</h2>
+                <button id="reset-btn" class="text-xs text-brand-muted hover:text-brand-ivory transition-colors underline decoration-brand-border">Сбросить выбор</button>
+            </div>
+            <div id="services-container" class="space-y-6"></div>
+        </section>
+
+        <section class="lg:col-span-5">
+            <div class="sticky top-8 bg-brand-card border border-brand-border rounded p-6 space-y-6">
+                <div class="border-b border-brand-border pb-3 flex justify-between items-center">
+                    <h2 class="text-sm uppercase tracking-widest text-brand-ivory font-bold">// Расчет сметы</h2>
+                    <span class="text-[10px] text-brand-muted uppercase">Предварительный</span>
+                </div>
+                <div id="summary-list" class="space-y-2.5 text-xs min-h-[140px] max-h-[260px] overflow-y-auto pr-1"></div>
+                <div class="border-t border-brand-border pt-4 space-y-2">
+                    <div class="flex justify-between items-baseline">
+                        <span class="text-xs uppercase text-brand-muted">Итоговая стоимость:</span>
+                        <span id="total-price" class="text-2xl font-bold font-mono text-brand-ivory">0 руб.</span>
+                    </div>
+                    <p class="text-[10px] text-brand-muted">Окончательная стоимость формируется после аудита.</p>
+                </div>
+                <div class="space-y-3 pt-2">
+                    <button id="open-modal-btn" class="w-full bg-brand-ivory text-brand-bg hover:bg-white font-medium py-3 rounded text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2">
+                        <span>Оформить запрос</span>
+                    </button>
+                    <button id="copy-summary-btn" class="w-full border border-brand-border hover:border-brand-ivory text-brand-ivory py-2.5 rounded text-xs transition-colors flex items-center justify-center gap-2">
+                        <span>Скопировать текст сметы</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="border-t border-brand-border py-6 px-4 md:px-8 text-center text-xs text-brand-muted">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+            <p>© МИБ (Модернизация · Интеграция · Безопасность)</p>
+            <p class="font-mono">Конфиденциальность & Инженерный стандарт</p>
+        </div>
+    </footer>
+
+    <div id="order-modal" class="fixed inset-0 bg-black/80 modal-blur flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-brand-card border border-brand-border rounded-lg max-w-md w-full p-6 space-y-5 relative shadow-2xl">
+            <button id="close-modal-btn" class="absolute top-4 right-4 text-brand-muted hover:text-brand-ivory text-lg">X</button>
+            <div>
+                <h3 class="text-base font-bold text-brand-ivory tracking-wider uppercase">// Отправка запроса</h3>
+                <p class="text-xs text-brand-muted mt-1">Инженер свяжется с вами для уточнения деталей.</p>
+            </div>
+            <form id="order-form" class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-brand-muted mb-1 uppercase text-[10px]">Ваше Имя / Организация *</label>
+                    <input type="text" id="client-name" required maxlength="100" placeholder="Максим (ООО 'ВладТрейд')" class="w-full bg-black border border-brand-border rounded px-3 py-2.5 text-brand-ivory focus:outline-none focus:border-brand-ivory">
+                </div>
+                <div>
+                     <label class="block text-brand-muted mb-1 uppercase text-[10px]">Телефон или Telegram *</label>
+                     <input type="text" id="client-contact" required maxlength="50" value="+7 " placeholder="+7 (900) 000-00-00 или @username" class="w-full bg-black border border-brand-border rounded px-3 py-2.5 text-brand-ivory focus:outline-none focus:border-brand-ivory">
+                </div>
+                <div>
+                    <label class="block text-brand-muted mb-1 uppercase text-[10px]">Комментарий к объекту</label>
+                    <textarea id="client-comment" rows="2" maxlength="500" placeholder="г. Владивосток, 2 кассовых зоны..." class="w-full bg-black border border-brand-border rounded px-3 py-2.5 text-brand-ivory focus:outline-none focus:border-brand-ivory resize-none"></textarea>
+                </div>
+                <div class="bg-black/50 p-3 rounded border border-brand-border/60">
+                    <div class="flex justify-between font-mono text-xs">
+                        <span class="text-brand-muted">Выбрано позиций:</span>
+                        <span id="modal-items-count" class="text-brand-ivory">0</span>
+                    </div>
+                    <div class="flex justify-between font-mono text-xs mt-1">
+                        <span class="text-brand-muted">Оценка стоимости:</span>
+                        <span id="modal-total-price" class="text-brand-ivory font-bold">0 руб.</span>
+                    </div>
+                </div>
+                                <!-- Чекбокс согласия -->
+                <div class="flex items-start gap-2.5 pt-1 pb-2">
+                    <input type="checkbox" id="privacy-checkbox" class="custom-checkbox mt-0.5 shrink-0" required>
+                    <label for="privacy-checkbox" class="text-[10px] text-brand-muted leading-tight cursor-pointer selection:bg-brand-ivory selection:text-brand-bg">
+                        Я даю согласие на обработку моих персональных данных в соответствии с
+                        <a href="#" id="open-privacy-btn" class="text-brand-ivory hover:text-amber-400 underline transition-colors" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('privacy-modal').classList.remove('hidden'); document.body.style.overflow='hidden';">Политикой обработки персональных данных</a>.
+                    </label>
+                </div>
+                <button type="submit" class="w-full bg-brand-ivory text-brand-bg hover:bg-white font-medium py-3 rounded text-xs uppercase tracking-wider transition-colors">Подтвердить и отправить</button>
+            </form>
+            <div id="success-message" class="hidden text-center py-6 space-y-3">
+                <div class="w-10 h-10 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto font-bold">V</div>
+                <h4 class="text-sm font-semibold text-brand-ivory">Запрос отправлен!</h4>
+                <p class="text-xs text-brand-muted">Инженер свяжется с вами в ближайшее время.</p>
+                <button type="button" id="finish-btn" class="px-4 py-2 bg-brand-border text-brand-ivory rounded text-xs">Закрыть окно</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-pass-modal" class="fixed inset-0 bg-black/90 modal-blur flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-brand-card border border-amber-500/40 rounded-lg max-w-xs w-full p-6 space-y-4 text-center">
+            <h3 class="text-sm font-bold text-amber-400 uppercase tracking-widest">// Вход в Администратор</h3>
+            <input type="password" id="admin-pass-input" placeholder="Пароль..." class="w-full bg-black border border-brand-border rounded px-3 py-2 text-center text-brand-ivory focus:outline-none focus:border-amber-400 font-mono text-xs">
+            <div class="flex gap-2">
+                <button id="admin-auth-submit" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 rounded text-xs uppercase">Войти</button>
+                <button id="admin-auth-cancel" class="px-3 bg-brand-border hover:bg-neutral-800 text-brand-muted rounded text-xs">X</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-6 right-6 bg-brand-card border border-brand-border text-brand-ivory text-xs px-4 py-3 rounded shadow-xl transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none flex items-center gap-2 z-50">
+        <span id="toast-icon" class="font-bold">OK</span>
+        <span id="toast-msg">Сообщение</span>
+    </div>
+        <!-- Модальное окно: Новый раздел -->
+    <div id="category-modal" class="fixed inset-0 bg-black/80 modal-blur flex items-center justify-center p-4 z-[70] hidden">
+        <div class="bg-brand-card border border-brand-border rounded-lg max-w-sm w-full p-6 space-y-4 relative">
+            <h3 class="text-sm font-bold text-brand-ivory uppercase tracking-widest">// Новый раздел</h3>
+            <div>
+                <label class="block text-brand-muted mb-1 uppercase text-[10px]">Название раздела</label>
+                <input type="text" id="new-category-name" placeholder="Например: 03. Сетевое оборудование" class="w-full bg-black border border-brand-border rounded px-3 py-2.5 text-brand-ivory focus:outline-none focus:border-amber-400 text-xs">
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button id="save-category-btn" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2.5 rounded text-xs uppercase transition-colors">Создать</button>
+                <button id="cancel-category-btn" class="px-4 bg-brand-border hover:bg-neutral-800 text-brand-muted rounded text-xs transition-colors">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Новая услуга -->
+    <div id="service-modal" class="fixed inset-0 bg-black/80 modal-blur flex items-center justify-center p-4 z-[70] hidden">
+        <div class="bg-brand-card border border-brand-border rounded-lg max-w-md w-full p-6 space-y-4 relative">
+            <h3 class="text-sm font-bold text-brand-ivory uppercase tracking-widest">// Новая услуга</h3>
+            <input type="hidden" id="new-service-category-id">
+            
+            <div>
+                <label class="block text-brand-muted mb-1 uppercase text-[10px]">Название услуги *</label>
+                <input type="text" id="new-service-name" placeholder="Монтаж камеры" class="w-full bg-black border border-brand-border rounded px-3 py-2.5 text-brand-ivory focus:outline-none focus:border-amber-400 text-xs">
+            </div>
+            
+            <div class="flex gap-4">
+                <div class="flex-1">
+                    <label class="block text-brand-muted mb-1 uppercase text-[10px]">Цена (руб.) *</label>
+                    <input type="number" id="new-service-price" value="3000" min="0" class="w-full bg-black border border-brand-border rounded px-3 py-2.5 text-brand-ivory focus:outline-none focus:border-amber-400 text-xs">
+                </div>
+                <div class="flex-1">
+                    <label class="block text-brand-muted mb-1 uppercase text-[10px]">Тип</label>
+                    <select id="new-service-type" class="w-full bg-black border border-brand-border rounded px-3 py-2.5 text-brand-ivory focus:outline-none focus:border-amber-400 text-xs">
+                        <option value="checkbox">Галочка (фикс)</option>
+                        <option value="counter">Счетчик (шт.)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-brand-muted mb-1 uppercase text-[10px]">Описание (необязательно)</label>
+                <input type="text" id="new-service-desc" placeholder="Прокладка кабеля, настройка" class="w-full bg-black border border-brand-border rounded px-3 py-2.5 text-brand-ivory focus:outline-none focus:border-amber-400 text-xs">
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button id="save-service-btn" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2.5 rounded text-xs uppercase transition-colors">Добавить</button>
+                <button id="cancel-service-btn" class="px-4 bg-brand-border hover:bg-neutral-800 text-brand-muted rounded text-xs transition-colors">Отмена</button>
+            </div>
+        </div>
+    </div>
+<!-- Модальное окно Политики конфиденциальности -->
+    <div id="privacy-modal" class="fixed inset-0 bg-black/80 modal-blur flex items-center justify-center p-4 z-[60] hidden">
+        <div class="bg-brand-card border border-brand-border rounded-lg max-w-2xl w-full h-[85vh] flex flex-col relative shadow-2xl">
+            <div class="p-4 border-b border-brand-border flex justify-between items-center bg-brand-card shrink-0 rounded-t-lg">
+                <h3 class="text-sm font-bold text-brand-ivory uppercase tracking-widest">Политика конфиденциальности</h3>
+                <button id="close-privacy-x" class="text-brand-muted hover:text-brand-ivory text-lg font-bold px-2">X</button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto text-xs text-brand-muted space-y-4 leading-relaxed">
+                <p class="text-brand-ivory font-bold">Политика обработки персональных данных</p>
+                <p>Настоящая Политика разработана в соответствии с Федеральным законом от 27.07.2006 № 152-ФЗ «О персональных данных» (далее — 152-ФЗ) и определяет порядок обработки персональных данных и меры по обеспечению их безопасности, применяемые оператором: Кочуров Максим Александрович, ИНН 250204251480, статус: физическое лицо (далее — Оператор).</p>
+
+                <p class="text-brand-ivory font-bold">1. Общие положения</p>
+                <p>1.1. Политика применяется ко всем персональным данным, которые Оператор получает от пользователей сайта [ссылка на сайт] (далее — Сайт) через форму заявки, а также технических данных, автоматически передаваемых браузером.</p>
+                <p>1.2. Оператор обрабатывает персональные данные на основе принципов законности, ограничения обработки заранее заявленными целями, минимизации состава данных и обеспечения конфиденциальности (ст. 5 152-ФЗ).</p>
+
+                <p class="text-brand-ivory font-bold">2. Категории субъектов и состав данных</p>
+                <p>2.1. Пользователи формы заявки: фамилия и имя (или название организации), номер телефона или контакт в Telegram, комментарий к заявке (при наличии).</p>
+                <p>2.2. Технические данные посетителей Сайта: IP-адрес, тип браузера и устройства, дата и время обращения. Эти данные обрабатываются в объёме, необходимом для обеспечения работы Сайта и защиты формы от злоупотреблений.</p>
+
+                <p class="text-brand-ivory font-bold">3. Цели обработки</p>
+                <p>3.1. Оформление и обработка заявки: связь с пользователем, уточнение параметров заказа, подготовка и направление коммерческого предложения или сметы.</p>
+                <p>3.2. Обеспечение работоспособности и безопасности Сайта: предотвращение спама и автоматизированных атак.</p>
+
+                <p class="text-brand-ivory font-bold">4. Правовые основания обработки</p>
+                <p>4.1. Согласие субъекта персональных данных на обработку его персональных данных (п. 1 ч. 1 ст. 6 152-ФЗ). Согласие даётся путём установки отдельной отметки (чекбокса) перед отправкой формы.</p>
+
+                <p class="text-brand-ivory font-bold">5. Порядок и условия обработки</p>
+                <p>5.1. Данные формы заявки сохраняются в защищённой базе данных (PostgreSQL, провайдер Supabase). Оператор не передаёт данные третьим лицам для самостоятельной обработки, за исключением случаев, прямо предусмотренных законом.</p>
+
+                <p class="text-brand-ivory font-bold">6. Сроки хранения</p>
+                <p>6.1. Данные формы заявки хранятся до достижения цели обработки, но не более 3 лет с момента последнего взаимодействия. По истечении срока данные подлежат удалению или обезличиванию.</p>
+                <p>6.2. Согласие может быть отозвано субъектом в любой момент. При отзыве Оператор прекращает обработку и удаляет данные.</p>
+
+                <p class="text-brand-ivory font-bold">7. Права субъекта персональных данных</p>
+                <p>7.1. Субъект имеет право: получать информацию об обработке своих данных (ст. 14 152-ФЗ); требовать уточнения, блокирования или уничтожения данных; отозвать согласие; обжаловать действия Оператора в Роскомнадзоре или в суде.</p>
+                <p>7.2. Запросы направляются на электронную почту Оператора: bastick125@gmail.com. Срок рассмотрения — 10 рабочих дней.</p>
+
+                <p class="text-brand-ivory font-bold">8. Меры защиты</p>
+                <p>8.1. Оператор принимает правовые, организационные и технические меры для защиты персональных данных от неправомерного доступа (ст. 19 152-ФЗ). К ним относятся: ограничение доступа, использование защищённых каналов передачи (HTTPS/TLS), парольная защита.</p>
+
+                <p class="text-brand-ivory font-bold">9. Заключительные положения</p>
+                <p>9.1. Политика может быть изменена Оператором. Новая редакция вступает в силу с момента её публикации на Сайте.</p>
+                <p>9.2. Актуальная редакция всегда доступна на Сайте. Дата последнего обновления: 27.10.2026.</p>
+            </div>
+            
+            <div class="p-4 border-t border-brand-border bg-brand-card shrink-0 rounded-b-lg">
+                <button id="close-privacy-btn" class="w-full bg-brand-ivory text-brand-bg font-bold py-2.5 rounded text-xs uppercase tracking-wider transition-colors hover:bg-white">Понятно</button>
+            </div>
+        </div>
+    </div>
+<!-- Подключаем библиотеку Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+// ==========================================
+// НАСТРОЙКИ SUPABASE
+// ==========================================
+const SUPABASE_URL = 'https://ibanvzomiosaboheuypl.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_2phCUJB76CHCnp7icBiolg_atb27p9H';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const ADMIN_TRIGGER = '#mib-admin';
+
+let rawServicesList = [];
+let selectedState = {};
+let isAdmin = false;
+let adminUser = null;
+
+// Проверка сессии при загрузке
+async function checkSession() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        adminUser = session.user;
+        document.getElementById('admin-pass-modal').classList.add('hidden'); // Скрываем окно, если уже вошли
+        enableAdminMode();
+    }
+}
+
+function formatPrice(val) {
+    const n = Number(val);
+    if (!Number.isFinite(n) || n < 0) return '0 руб.';
+    return n.toLocaleString('ru-RU') + ' руб.';
+}
+
+function showToast(msg, isError) {
+    const toast = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    document.getElementById('toast-icon').textContent = isError ? 'ERR' : 'OK';
+    toast.style.borderColor = isError ? 'rgba(239,68,68,.5)' : '';
+    toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+    }, 2500);
+}
+
+// ==========================================
+// ЗАГРУЗКА УСЛУГ ИЗ SUPABASE
+// ==========================================
+async function loadServices() {
+    const container = document.getElementById('services-container');
+    container.innerHTML = '<div class="p-8 text-center text-brand-muted text-xs bg-brand-card border border-brand-border rounded"><div class="spinner mb-2 border-t-brand-ivory"></div><p>Загрузка прайс-листа...</p></div>';
+
+    try {
+        // Запрашиваем разделы и услуги
+        const { data: categories, error: catErr } = await supabaseClient.from('categories').select('*').order('name');
+        const { data: services, error: servErr } = await supabaseClient.from('services').select('*').order('created_at');
+
+        if (catErr || servErr) throw new Error(catErr?.message || servErr?.message);
+
+        // Собираем в единый формат
+        rawServicesList = [];
+        services.forEach(s => {
+            const cat = categories.find(c => c.id === s.category_id);
+            rawServicesList.push({
+                id: s.id,
+                category: cat ? cat.name : 'Общие',
+                categoryId: s.category_id,
+                name: s.name,
+                price: s.price,
+                desc: s.description || '',
+                type: s.type
+            });
+        });
+
+        renderServicesUI();
+    } catch (err) {
+        container.innerHTML = '<div class="p-6 bg-red-950/30 border border-red-800/50 rounded text-xs text-red-300">Ошибка загрузки: ' + err.message + '</div>';
+    }
+}
+
+function renderServicesUI() {
+    const container = document.getElementById('services-container');
+    container.innerHTML = '';
+    if (rawServicesList.length === 0) {
+        container.innerHTML = '<div class="p-6 text-center text-brand-muted text-xs bg-brand-card border border-brand-border rounded">Прайс-лист пуст.</div>';
+        updateSummary(); return;
+    }
+
+    const categories = {};
+    rawServicesList.forEach((item, index) => {
+        const cat = item.category || 'Общие';
+        if (!categories[cat]) categories[cat] = [];
+        categories[cat].push({ ...item, rawIndex: index });
+    });
+
+    Object.keys(categories).forEach(catName => {
+        const items = categories[catName];
+        const catCard = document.createElement('div');
+        catCard.className = 'bg-brand-card border border-brand-border rounded p-5 space-y-4 relative group';
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between border-b border-brand-border/50 pb-2';
+        
+        const title = document.createElement('h3');
+        title.className = 'text-sm font-semibold tracking-wide text-brand-ivory';
+        title.textContent = catName;
+        header.appendChild(title);
+
+        if (isAdmin) {
+            const delCatBtn = document.createElement('button');
+            delCatBtn.className = 'text-[10px] text-red-400 hover:text-red-300 border border-red-900/50 px-2 py-0.5 rounded';
+            delCatBtn.textContent = 'Удалить раздел';
+            delCatBtn.onclick = () => deleteCategory(items[0].categoryId, catName);
+            header.appendChild(delCatBtn);
+        }
+        catCard.appendChild(header);
+
+        const itemsWrap = document.createElement('div');
+        itemsWrap.className = 'space-y-2';
+        items.forEach(item => itemsWrap.appendChild(item.type === 'counter' ? renderCounterRow(item) : renderCheckboxRow(item)));
+        catCard.appendChild(itemsWrap);
+
+        if (isAdmin) {
+            const addItemBtn = document.createElement('button');
+            addItemBtn.className = 'w-full mt-2 py-1.5 border border-dashed border-brand-border hover:border-amber-500/50 text-amber-400 text-[11px] rounded transition-colors';
+            addItemBtn.textContent = '+ Добавить услугу';
+            addItemBtn.onclick = () => addNewItemToCat(items[0].categoryId);
+            catCard.appendChild(addItemBtn);
+        }
+        container.appendChild(catCard);
+    });
+    updateSummary();
+}
+
+function renderCounterRow(item) {
+    const curQty = selectedState[item.id] ? selectedState[item.id].qty : 0;
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors text-xs';
+
+    const left = document.createElement('div');
+    left.className = 'pr-2';
+    const n = document.createElement('div');
+    n.className = 'font-medium text-brand-ivory';
+    n.textContent = item.name;
+    left.appendChild(n);
+    if (item.desc) {
+        const d = document.createElement('div');
+        d.className = 'text-brand-muted text-[10px]';
+        d.textContent = item.desc;
+        left.appendChild(d);
+    }
+    row.appendChild(left);
+
+    const right = document.createElement('div');
+    right.className = 'flex items-center gap-3 shrink-0';
+    const counter = document.createElement('div');
+    counter.className = 'flex items-center border border-brand-border rounded bg-black/40';
+
+    const btnMinus = document.createElement('button'); btnMinus.type='button'; btnMinus.className='px-2 py-0.5 text-brand-muted hover:text-white'; btnMinus.textContent='-'; btnMinus.onclick = () => changeQty(item.id, -1);
+    const qtyVal = document.createElement('span'); qtyVal.className='px-2 font-mono text-brand-ivory'; qtyVal.textContent=String(curQty); qtyVal.id = 'qty-' + item.id;
+    const btnPlus = document.createElement('button'); btnPlus.type='button'; btnPlus.className='px-2 py-0.5 text-brand-muted hover:text-white'; btnPlus.textContent='+'; btnPlus.onclick = () => changeQty(item.id, 1);
+
+    counter.appendChild(btnMinus); counter.appendChild(qtyVal); counter.appendChild(btnPlus);
+    right.appendChild(counter);
+
+    const priceEl = document.createElement('span');
+    priceEl.className = 'font-mono text-brand-ivory w-20 text-right';
+    priceEl.textContent = formatPrice(item.price) + '/шт';
+    right.appendChild(priceEl);
+
+    if (isAdmin) {
+        const delBtn = document.createElement('button'); delBtn.className = 'text-red-400 hover:text-red-300 text-xs px-1'; delBtn.textContent = 'X';
+        delBtn.onclick = () => deleteItem(item.id);
+        right.appendChild(delBtn);
+    }
+    row.appendChild(right);
+    return row;
+}
+
+function renderCheckboxRow(item) {
+    const isChecked = !!(selectedState[item.id] && selectedState[item.id].qty > 0);
+    const label = document.createElement('label');
+    label.className = 'flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors cursor-pointer group text-xs';
+
+    const left = document.createElement('div');
+    left.className = 'flex items-center gap-3';
+
+    const cb = document.createElement('input'); cb.type='checkbox'; cb.className='custom-checkbox'; cb.checked=isChecked;
+    cb.onchange = (e) => toggleItem(item.id, e.target.checked);
+
+    const textWrap = document.createElement('div');
+    const n = document.createElement('div'); n.className='font-medium group-hover:text-white'; n.textContent=item.name;
+    textWrap.appendChild(n);
+    if (item.desc) {
+        const d = document.createElement('div'); d.className='text-brand-muted text-[10px]'; d.textContent=item.desc;
+        textWrap.appendChild(d);
+    }
+    left.appendChild(cb); left.appendChild(textWrap);
+    label.appendChild(left);
+
+    const right = document.createElement('div');
+    right.className = 'flex items-center gap-2';
+
+    const priceEl = document.createElement('span'); priceEl.className='font-mono text-brand-ivory'; priceEl.textContent=formatPrice(item.price);
+    right.appendChild(priceEl);
+
+    if (isAdmin) {
+        const delBtn = document.createElement('button'); delBtn.className='text-red-400 hover:text-red-300 text-xs px-1'; delBtn.textContent='X';
+        delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); deleteItem(item.id); };
+        right.appendChild(delBtn);
+    }
+    label.appendChild(right);
+    return label;
+}
+
+function toggleItem(id, checked) {
+    const item = rawServicesList.find(i => i.id === id);
+    if (!item) return;
+    if (checked) selectedState[id] = { name: item.name, price: item.price, qty: 1, isCounter: false };
+    else delete selectedState[id];
+    updateSummary();
+}
+
+function changeQty(id, delta) {
+    const item = rawServicesList.find(i => i.id === id);
+    if (!item) return;
+    const cur = selectedState[id] ? selectedState[id].qty : 0;
+    const next = Math.max(0, cur + delta);
+    
+    if (next === 0) delete selectedState[id];
+    else selectedState[id] = { name: item.name, price: item.price, qty: next, isCounter: true };
+    
+    const qtyEl = document.getElementById('qty-' + id);
+    if (qtyEl) qtyEl.textContent = String(next);
+    
+    updateSummary();
+}
+
+function updateSummary() {
+    const summaryList = document.getElementById('summary-list');
+    summaryList.innerHTML = '';
+    let total = 0;
+    let count = 0;
+
+    Object.keys(selectedState).forEach(k => {
+        const item = selectedState[k];
+        const lineTotal = item.price * item.qty;
+        total += lineTotal;
+        count += item.qty;
+
+        const row = document.createElement('div'); row.className = 'flex justify-between items-start gap-2 border-b border-brand-border/30 pb-1.5';
+        const labelSpan = document.createElement('span'); labelSpan.className = 'text-brand-ivory leading-tight';
+        labelSpan.textContent = item.isCounter ? `${item.name} (${item.qty} шт)` : item.name;
+        const priceSpan = document.createElement('span'); priceSpan.className = 'font-mono text-brand-muted shrink-0'; priceSpan.textContent = formatPrice(lineTotal);
+
+        row.appendChild(labelSpan); row.appendChild(priceSpan); summaryList.appendChild(row);
+    });
+
+    if (count === 0) summaryList.innerHTML = '<p class="text-brand-muted text-center py-8 italic">Услуги не выбраны.</p>';
+
+    const totalPriceEl = document.getElementById('total-price');
+    totalPriceEl.textContent = formatPrice(total);
+    totalPriceEl.classList.remove('price-updated');
+    void totalPriceEl.offsetWidth;
+    totalPriceEl.classList.add('price-updated');
+
+    document.getElementById('modal-items-count').textContent = String(count);
+    document.getElementById('modal-total-price').textContent = formatPrice(total);
+}
+
+// ==========================================
+// АДМИНКА
+// ==========================================
+function checkAdminTrigger() {
+    if (window.location.hash === ADMIN_TRIGGER) {
+        document.getElementById('admin-pass-modal').classList.remove('hidden');
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+}
+
+function enableAdminMode() {
+    isAdmin = true;
+    document.getElementById('admin-indicator').classList.remove('hidden');
+    document.getElementById('admin-toolbar').classList.remove('hidden');
+    renderServicesUI();
+}
+
+async function exitAdminMode() {
+    await supabaseClient.auth.signOut();
+    isAdmin = false;
+    adminUser = null;
+    document.getElementById('admin-indicator').classList.add('hidden');
+    document.getElementById('admin-toolbar').classList.add('hidden');
+    renderServicesUI();
+    showToast('Выход из режима редактора');
+}
+
+// Открытие окна добавления услуги
+function addNewItemToCat(categoryId) {
+    document.getElementById('new-service-category-id').value = categoryId;
+    document.getElementById('new-service-name').value = '';
+    document.getElementById('new-service-price').value = '3000';
+    document.getElementById('new-service-desc').value = '';
+    document.getElementById('new-service-type').value = 'checkbox';
+    document.getElementById('service-modal').classList.remove('hidden');
+}
+
+// Отмена
+document.getElementById('cancel-service-btn').onclick = () => {
+    document.getElementById('service-modal').classList.add('hidden');
+};
+
+// Сохранение новой услуги
+document.getElementById('save-service-btn').onclick = async () => {
+    const catId = document.getElementById('new-service-category-id').value;
+    const name = document.getElementById('new-service-name').value.trim();
+    const price = parseInt(document.getElementById('new-service-price').value, 10) || 0;
+    const desc = document.getElementById('new-service-desc').value.trim();
+    const type = document.getElementById('new-service-type').value;
+
+    if (!name) { showToast('Введите название услуги', true); return; }
+
+    const { error } = await supabaseClient.from('services').insert([{
+        category_id: catId,
+        name: name,
+        price: Math.max(0, price),
+        description: desc,
+        type: type
+    }]);
+
+    if (error) {
+        showToast('Ошибка добавления', true);
+    } else {
+        document.getElementById('service-modal').classList.add('hidden');
+        showToast('Услуга добавлена');
+        loadServices(); 
+    }
+};
+
+async function deleteItem(id) {
+    if (confirm('Удалить эту позицию?')) {
+        const { error } = await supabaseClient.from('services').delete().eq('id', id);
+        if (error) showToast('Ошибка удаления', true);
+        else { 
+            if (selectedState[id]) delete selectedState[id];
+            showToast('Удалено'); 
+            loadServices(); 
+        }
+    }
+}
+
+async function deleteCategory(categoryId, catName) {
+    if (confirm(`Удалить весь раздел "${catName}"?`)) {
+        const { error } = await supabaseClient.from('categories').delete().eq('id', categoryId);
+        if (error) showToast('Ошибка удаления', true);
+        else { 
+            showToast('Раздел удален'); 
+            loadServices(); 
+            selectedState = {}; 
+            updateSummary();
+        }
+    }
+}
+
+document.getElementById('add-category-btn').onclick = () => {
+    document.getElementById('new-category-name').value = '';
+    document.getElementById('category-modal').classList.remove('hidden');
+};
+
+document.getElementById('cancel-category-btn').onclick = () => {
+    document.getElementById('category-modal').classList.add('hidden');
+};
+
+document.getElementById('save-category-btn').onclick = async () => {
+    const catName = document.getElementById('new-category-name').value.trim();
+    if (!catName) { showToast('Введите название', true); return; }
+
+    const { data, error } = await supabaseClient.from('categories').insert([{ name: catName }]).select();
+    if (error) {
+        showToast('Ошибка создания раздела', true);
+    } else {
+        document.getElementById('category-modal').classList.add('hidden');
+        showToast('Раздел создан');
+        loadServices(); 
+    }
+};
+
+document.getElementById('admin-auth-submit').onclick = async () => {
+    const email = 'bastick125@gmail.com'; // Тот email, который ты создал в Supabase
+    const password = document.getElementById('admin-pass-input').value;
+    if (!password) return;
+
+    const btn = document.getElementById('admin-auth-submit');
+    const origText = btn.textContent;
+    btn.textContent = '...'; btn.disabled = true;
+
+    // Логинимся через Supabase Auth
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+    if (error) {
+        alert('Ошибка Supabase: ' + error.message); // Теперь мы увидим настоящую причину!
+        console.error(error);
+    } else {
+
+        adminUser = data.user;
+        document.getElementById('admin-pass-modal').classList.add('hidden');
+        enableAdminMode();
+        showToast('Режим редактора включен');
+        document.getElementById('admin-pass-input').value = '';
+    }
+    
+    btn.textContent = origText; btn.disabled = false;
+};
+
+document.getElementById('admin-auth-cancel').onclick = () => document.getElementById('admin-pass-modal').classList.add('hidden');
+document.getElementById('exit-admin-btn').onclick = exitAdminMode;
+
+// ==========================================
+// ОТПРАВКА ЗАКАЗА В SUPABASE
+// ==========================================
+document.getElementById('order-form').onsubmit = async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('client-name').value.trim();
+    const contact = document.getElementById('client-contact').value.trim();
+    const comment = document.getElementById('client-comment').value.trim();
+
+    // 1. Валидация (осталась прежней)
+    const nameRegex = /^[а-яА-ЯёЁa-zA-Z\s\-]+$/;
+    if (name.length < 2 || !nameRegex.test(name)) { showToast('Имя: только буквы (мин. 2 символа)', true); return; }
+    
+    const isTg = /^@[a-zA-Z0-9_]{4,32}$/.test(contact);
+    let isPhone = false;
+    if (!isTg) {
+        const cleanPhone = contact.replace(/\D/g, ''); 
+        if (cleanPhone.length === 11 && (cleanPhone.startsWith('7') || cleanPhone.startsWith('8'))) isPhone = true;
+    }
+    if (!isTg && !isPhone) { showToast('Введите 11-значный номер или @username', true); return; }
+
+    const badPattern = /[<>]|(<script)|(select\s)|(union\s)|(drop\s)|(insert\s)|(update\s)|(delete\s)|(--)|(\/\*)|(\*\/)|(javascript:)|(onerror)|(onload)/i;
+    if (badPattern.test(name) || badPattern.test(contact) || badPattern.test(comment)) { showToast('Запрещенные символы в тексте', true); return; }
+
+    if (comment.length > 0) {
+        const letters = comment.match(/[а-яА-ЯёЁa-zA-Z]/g) || [];
+        const totalNoSpaces = comment.replace(/\s/g, '').length;
+        if (letters.length < 2 || (letters.length / totalNoSpaces < 0.4)) { showToast('Слишком много спецсимволов в комментарии', true); return; }
+    }
+
+    const privacyCheckbox = document.getElementById('privacy-checkbox');
+    if (!privacyCheckbox || !privacyCheckbox.checked) { showToast('Необходимо согласие на обработку данных', true); return; }
+
+    // 2. Подготовка данных
+    const items = Object.keys(selectedState).map(k => ({
+        id: k,
+        name: selectedState[k].name, 
+        qty: selectedState[k].qty, 
+        total: selectedState[k].price * selectedState[k].qty
+    }));
+    const total = items.reduce((a, b) => a + b.total, 0);
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const origText = submitBtn.textContent;
+    submitBtn.disabled = true; submitBtn.textContent = 'Отправка...';
+
+    // 3. Отправка в базу
+    try {
+        const { error } = await supabaseClient.from('orders').insert([{
+            client_name: name,
+            client_contact: contact,
+            comment: comment,
+            items: items,
+            total: total
+        }]);
+
+        if (error) throw new Error(error.message);
+
+        document.getElementById('order-form').classList.add('hidden');
+        document.getElementById('success-message').classList.remove('hidden');
+        document.getElementById('order-form').reset();
+    } catch (err) {
+        showToast('Ошибка отправки. Попробуйте позже.', true);
+        console.error(err);
+    } finally {
+        submitBtn.disabled = false; submitBtn.textContent = origText;
+    }
+};
+
+// ==========================================
+// ОСТАЛЬНОЙ ИНТЕРФЕЙС
+// ==========================================
+document.getElementById('reset-btn').onclick = () => { selectedState = {}; renderServicesUI(); showToast('Выбор сброшен'); };
+
+document.getElementById('copy-summary-btn').onclick = async () => {
+    let text = 'СМЕТА УСЛУГ МИБ\n-----------------------------------\n';
+    if (Object.keys(selectedState).length === 0) text += 'Услуги не выбраны.\n';
+    else {
+        Object.keys(selectedState).forEach(k => {
+            const item = selectedState[k];
+            text += `- ${item.isCounter ? `${item.name} (${item.qty} шт)` : item.name}: ${formatPrice(item.price * item.qty)}\n`;
+        });
+        text += '-----------------------------------\nИТОГО: ' + document.getElementById('total-price').textContent + '\n';
+    }
+    try { await navigator.clipboard.writeText(text); showToast('Смета скопирована!'); }
+    catch (e) { showToast('Не удалось скопировать', true); }
+};
+
+document.getElementById('open-modal-btn').onclick = () => {
+    if (Object.keys(selectedState).length === 0) { showToast('Выберите хотя бы одну услугу', true); return; }
+    document.getElementById('order-form').classList.remove('hidden');
+    document.getElementById('success-message').classList.add('hidden');
+    document.getElementById('order-modal').classList.remove('hidden');
+};
+
+document.getElementById('close-modal-btn').onclick = () => {
+    document.getElementById('order-modal').classList.add('hidden');
+    document.getElementById('order-form').classList.remove('hidden');
+    document.getElementById('success-message').classList.add('hidden');
+    document.getElementById('order-form').reset();
+    document.getElementById('privacy-checkbox').checked = false;
+};
+
+document.getElementById('finish-btn').onclick = () => {
+    document.getElementById('order-modal').classList.add('hidden');
+    document.getElementById('order-form').classList.remove('hidden');
+    document.getElementById('success-message').classList.add('hidden');
+    document.getElementById('order-form').reset();
+    document.getElementById('privacy-checkbox').checked = false; 
+};
+
+const contactInput = document.getElementById('client-contact');
+contactInput.addEventListener('input', function() {
+    let val = this.value;
+    if (val.startsWith('@')) { this.value = val.replace(/[^a-zA-Z0-9_@]/g, ''); return; }
+    let digits = val.replace(/\D/g, '');
+    if (digits.startsWith('7') || digits.startsWith('8')) digits = digits.substring(1);
+    digits = digits.substring(0, 10);
+    let formatted = '+7';
+    if (digits.length > 0) formatted += ' (' + digits.substring(0, 3);
+    if (digits.length >= 4) formatted += ') ' + digits.substring(3, 6);
+    if (digits.length >= 7) formatted += '-' + digits.substring(6, 8);
+    if (digits.length >= 9) formatted += '-' + digits.substring(8, 10);
+    this.value = formatted;
+});
+contactInput.addEventListener('blur', function() {
+    if (this.value.trim() === '' || this.value.trim() === '+7') this.value = '+7 ';
+});
+
+document.getElementById('close-privacy-btn').onclick = () => {
+    document.getElementById('privacy-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+};
+document.getElementById('close-privacy-x').onclick = () => {
+    document.getElementById('privacy-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+};
+document.getElementById('order-modal').addEventListener('click', function(e) {
+    if (e.target === this) document.getElementById('close-modal-btn').click();
+});
+document.getElementById('privacy-modal').addEventListener('click', function(e) {
+    if (e.target === this) document.getElementById('close-privacy-x').click();
+});
+
+// Запуск при загрузке
+document.addEventListener('DOMContentLoaded', async () => { 
+    // Сначала проверяем сессию (вдруг админ уже вошел)
+    await checkSession(); 
+    // Только потом проверяем хеш (если сессии нет, покажет окно)
+    checkAdminTrigger();
+    loadServices(); 
+});
+</script>
+</body>
+</html>
