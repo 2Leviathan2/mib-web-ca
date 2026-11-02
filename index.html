@@ -47,7 +47,6 @@
         
         .modal-blur { backdrop-filter: blur(8px); }
         
-        /* Спиннер загрузки без эмодзи */
         .spinner {
             border: 2px solid rgba(0,0,0,0.1);
             border-top: 2px solid #0A0A0A;
@@ -58,14 +57,12 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-                /* 1. Легкая тень при наведении на карточку (без мерцания) */
         #services-container > div:hover {
             border-color: #4a4a4a;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(200, 176, 151, 0.1);
             background-color: #151515;
         }
 
-        /* 2. Плавное появление модальных окон */
         @keyframes modalFadeIn {
             from { opacity: 0; backdrop-filter: blur(0px); }
             to { opacity: 1; backdrop-filter: blur(8px); }
@@ -76,23 +73,25 @@
         }
 
         #order-modal:not(.hidden),
-        #privacy-modal:not(.hidden) {
+        #privacy-modal:not(.hidden),
+        #category-modal:not(.hidden),
+        #service-modal:not(.hidden) {
             animation: modalFadeIn 0.3s ease-out forwards;
             display: flex !important;
         }
 
         #order-modal:not(.hidden) > div,
-        #privacy-modal:not(.hidden) > div {
+        #privacy-modal:not(.hidden) > div,
+        #category-modal:not(.hidden) > div,
+        #service-modal:not(.hidden) > div {
             animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        /* 3. Легкое вдавливание кнопок при клике */
         button:active {
             transform: scale(0.97) !important;
             transition: transform 0.05s ease;
         }
 
-        /* 4. Пружинистая галочка в чекбоксе */
         @keyframes checkBounce {
             0% { transform: scale(0); }
             60% { transform: scale(1.2); }
@@ -101,21 +100,16 @@
         .custom-checkbox:checked::before {
             animation: checkBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-                /* Пульсация цены */
+        
         @keyframes pricePop {
             0% { transform: scale(1); color: #F3EFE6; }
             50% { transform: scale(1.1); color: #C8B097; }
             100% { transform: scale(1); color: #F3EFE6; }
         }
         
-        /* Обязательно добавляем inline-block, иначе масштабирование не сработает */
-        #total-price {
-            display: inline-block; 
-        }
+        #total-price { display: inline-block; }
 
-        .price-updated {
-            animation: pricePop 0.3s ease-in-out;
-        }
+        .price-updated { animation: pricePop 0.3s ease-in-out; }
     </style>
 </head>
 <body class="bg-brand-bg text-brand-ivory font-mono antialiased min-h-screen flex flex-col justify-between selection:bg-brand-ivory selection:text-brand-bg">
@@ -196,6 +190,7 @@
         </div>
     </footer>
 
+    <!-- Модалка заказа -->
     <div id="order-modal" class="fixed inset-0 bg-black/80 modal-blur flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-brand-card border border-brand-border rounded-lg max-w-md w-full p-6 space-y-5 relative shadow-2xl">
             <button id="close-modal-btn" class="absolute top-4 right-4 text-brand-muted hover:text-brand-ivory text-lg">X</button>
@@ -226,7 +221,6 @@
                         <span id="modal-total-price" class="text-brand-ivory font-bold">0 руб.</span>
                     </div>
                 </div>
-                                <!-- Чекбокс согласия -->
                 <div class="flex items-start gap-2.5 pt-1 pb-2">
                     <input type="checkbox" id="privacy-checkbox" class="custom-checkbox mt-0.5 shrink-0" required>
                     <label for="privacy-checkbox" class="text-[10px] text-brand-muted leading-tight cursor-pointer selection:bg-brand-ivory selection:text-brand-bg">
@@ -245,6 +239,7 @@
         </div>
     </div>
 
+    <!-- Модалки админки -->
     <div id="admin-pass-modal" class="fixed inset-0 bg-black/90 modal-blur flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-brand-card border border-amber-500/40 rounded-lg max-w-xs w-full p-6 space-y-4 text-center">
             <h3 class="text-sm font-bold text-amber-400 uppercase tracking-widest">// Вход в Администратор</h3>
@@ -256,15 +251,10 @@
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-6 right-6 bg-brand-card border border-brand-border text-brand-ivory text-xs px-4 py-3 rounded shadow-xl transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none flex items-center gap-2 z-50">
-        <span id="toast-icon" class="font-bold">OK</span>
-        <span id="toast-msg">Сообщение</span>
-    </div>
-        <!-- Модальное окно: Новый раздел -->
     <div id="category-modal" class="fixed inset-0 bg-black/80 modal-blur flex items-center justify-center p-4 z-[70] hidden">
         <div class="bg-brand-card border border-brand-border rounded-lg max-w-sm w-full p-6 space-y-4 relative">
             <h3 class="text-sm font-bold text-brand-ivory uppercase tracking-widest">// Новый раздел</h3>
-                        <div>
+            <div>
                 <label class="block text-brand-muted mb-1 uppercase text-[10px]">Название раздела</label>
                 <input type="text" id="new-category-name" placeholder="Например: 03. Сетевое оборудование" class="w-full bg-black border border-brand-border rounded px-3 py-2.5 text-brand-ivory focus:outline-none focus:border-amber-400 text-xs mb-3">
             </div>
@@ -279,7 +269,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно: Новая услуга -->
     <div id="service-modal" class="fixed inset-0 bg-black/80 modal-blur flex items-center justify-center p-4 z-[70] hidden">
         <div class="bg-brand-card border border-brand-border rounded-lg max-w-md w-full p-6 space-y-4 relative">
             <h3 class="text-sm font-bold text-brand-ivory uppercase tracking-widest">// Новая услуга</h3>
@@ -315,7 +304,8 @@
             </div>
         </div>
     </div>
-<!-- Модальное окно Политики конфиденциальности -->
+
+    <!-- Политика -->
     <div id="privacy-modal" class="fixed inset-0 bg-black/80 modal-blur flex items-center justify-center p-4 z-[60] hidden">
         <div class="bg-brand-card border border-brand-border rounded-lg max-w-2xl w-full h-[85vh] flex flex-col relative shadow-2xl">
             <div class="p-4 border-b border-brand-border flex justify-between items-center bg-brand-card shrink-0 rounded-t-lg">
@@ -328,7 +318,7 @@
                 <p>Настоящая Политика разработана в соответствии с Федеральным законом от 27.07.2006 № 152-ФЗ «О персональных данных» (далее — 152-ФЗ) и определяет порядок обработки персональных данных и меры по обеспечению их безопасности, применяемые оператором: Кочуров Максим Александрович, ИНН 250204251480, статус: физическое лицо (далее — Оператор).</p>
 
                 <p class="text-brand-ivory font-bold">1. Общие положения</p>
-                <p>1.1. Политика применяется ко всем персональным данным, которые Оператор получает от пользователей сайта [ссылка на сайт] (далее — Сайт) через форму заявки, а также технических данных, автоматически передаваемых браузером.</p>
+                <p>1.1. Политика применяется ко всем персональным данным, которые Оператор получает от пользователей сайта mib-vl.workers.dev (далее — Сайт) через форму заявки, а также технических данных, автоматически передаваемых браузером.</p>
                 <p>1.2. Оператор обрабатывает персональные данные на основе принципов законности, ограничения обработки заранее заявленными целями, минимизации состава данных и обеспечения конфиденциальности (ст. 5 152-ФЗ).</p>
 
                 <p class="text-brand-ivory font-bold">2. Категории субъектов и состав данных</p>
@@ -358,7 +348,7 @@
 
                 <p class="text-brand-ivory font-bold">9. Заключительные положения</p>
                 <p>9.1. Политика может быть изменена Оператором. Новая редакция вступает в силу с момента её публикации на Сайте.</p>
-                <p>9.2. Актуальная редакция всегда доступна на Сайте. Дата последнего обновления: 27.10.2026.</p>
+                <p>9.2. Актуальная редакция всегда доступна на Сайте. Дата последнего обновления: 02.11.2026.</p>
             </div>
             
             <div class="p-4 border-t border-brand-border bg-brand-card shrink-0 rounded-b-lg">
@@ -366,588 +356,647 @@
             </div>
         </div>
     </div>
-<!-- Подключаем библиотеку Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script>
-// ==========================================
-// НАСТРОЙКИ SUPABASE
-// ==========================================
-const SUPABASE_URL = 'https://ibanvzomiosaboheuypl.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_2phCUJB76CHCnp7icBiolg_atb27p9H';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <div id="toast" class="fixed bottom-6 right-6 bg-brand-card border border-brand-border text-brand-ivory text-xs px-4 py-3 rounded shadow-xl transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none flex items-center gap-2 z-50">
+        <span id="toast-icon" class="font-bold">OK</span>
+        <span id="toast-msg">Сообщение</span>
+    </div>
 
-const ADMIN_TRIGGER = '#mib-admin';
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // ==========================================
+        // НАСТРОЙКИ SUPABASE
+        // ==========================================
+        const SUPABASE_URL = 'https://ibanvzomiosaboheuyl.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_2phCUJB76CHCnp7icBiolg_atb27p9H';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let rawServicesList = [];
-let selectedState = {};
-let isAdmin = false;
-let adminUser = null;
+        const ADMIN_TRIGGER = '#mib-admin';
 
-// Проверка сессии при загрузке
-async function checkSession() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-        adminUser = session.user;
-        document.getElementById('admin-pass-modal').classList.add('hidden'); // Скрываем окно, если уже вошли
-        enableAdminMode();
-    }
-}
+        let rawServicesList = [];
+        let selectedState = {};
+        let isAdmin = false;
+        let adminUser = null;
+        let editingCategoryId = null;
+        let editingServiceId = null;
 
-function formatPrice(val) {
-    const n = Number(val);
-    if (!Number.isFinite(n) || n < 0) return '0 руб.';
-    return n.toLocaleString('ru-RU') + ' руб.';
-}
+        // ==========================================
+        // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        // ==========================================
+        function formatPrice(val) {
+            const n = Number(val);
+            if (!Number.isFinite(n) || n < 0) return '0 руб.';
+            return n.toLocaleString('ru-RU') + ' руб.';
+        }
 
-function showToast(msg, isError) {
-    const toast = document.getElementById('toast');
-    document.getElementById('toast-msg').textContent = msg;
-    document.getElementById('toast-icon').textContent = isError ? 'ERR' : 'OK';
-    toast.style.borderColor = isError ? 'rgba(239,68,68,.5)' : '';
-    toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => {
-        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
-    }, 2500);
-}
+        function showToast(msg, isError) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            document.getElementById('toast-icon').textContent = isError ? 'ERR' : 'OK';
+            toast.style.borderColor = isError ? 'rgba(239,68,68,.5)' : '';
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            clearTimeout(showToast._t);
+            showToast._t = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
 
-// ==========================================
-// ЗАГРУЗКА УСЛУГ ИЗ SUPABASE
-// ==========================================
-async function loadServices() {
-    const container = document.getElementById('services-container');
-    container.innerHTML = '<div class="p-8 text-center text-brand-muted text-xs bg-brand-card border border-brand-border rounded"><div class="spinner mb-2 border-t-brand-ivory"></div><p>Загрузка прайс-листа...</p></div>';
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                adminUser = session.user;
+                document.getElementById('admin-pass-modal').classList.add('hidden');
+                enableAdminMode();
+            }
+        }
 
-    try {
-        // Запрашиваем разделы и услуги
-        const { data: categories, error: catErr } = await supabaseClient.from('categories').select('*').order('name');
-        const { data: services, error: servErr } = await supabaseClient.from('services').select('*').order('created_at');
+        // ==========================================
+        // ЗАГРУЗКА И ОТРИСОВКА
+        // ==========================================
+        async function loadServices() {
+            const container = document.getElementById('services-container');
+            container.innerHTML = '<div class="p-8 text-center text-brand-muted text-xs bg-brand-card border border-brand-border rounded"><div class="spinner mb-2 border-t-brand-ivory"></div><p>Загрузка прайс-листа...</p></div>';
 
-        if (catErr || servErr) throw new Error(catErr?.message || servErr?.message);
+            try {
+                const { data: categories, error: catErr } = await supabaseClient.from('categories').select('*').order('name');
+                const { data: services, error: servErr } = await supabaseClient.from('services').select('*').order('created_at');
 
-        // Собираем в единый формат
-        rawServicesList = [];
-        services.forEach(s => {
-            const cat = categories.find(c => c.id === s.category_id);
-            rawServicesList.push({
-                id: s.id,
-                category: cat ? cat.name : 'Общие',
-                categoryId: s.category_id,
-                name: s.name,
-                price: s.price,
-                desc: s.description || '',
-                type: s.type
+                if (catErr || servErr) throw new Error(catErr?.message || servErr?.message);
+
+                rawServicesList = [];
+                services.forEach(s => {
+                    const cat = categories.find(c => c.id === s.category_id);
+                    rawServicesList.push({
+                        id: s.id,
+                        category: cat ? cat.name : 'Общие',
+                        categoryId: s.category_id,
+                        name: s.name,
+                        price: s.price,
+                        desc: s.description || '',
+                        type: s.type
+                    });
+                });
+
+                renderServicesUI();
+            } catch (err) {
+                container.innerHTML = '<div class="p-6 bg-red-950/30 border border-red-800/50 rounded text-xs text-red-300">Ошибка загрузки: ' + err.message + '</div>';
+            }
+        }
+
+        function renderServicesUI() {
+            const container = document.getElementById('services-container');
+            container.innerHTML = '';
+            if (rawServicesList.length === 0) {
+                container.innerHTML = '<div class="p-6 text-center text-brand-muted text-xs bg-brand-card border border-brand-border rounded">Прайс-лист пуст.</div>';
+                updateSummary(); return;
+            }
+
+            const categories = {};
+            rawServicesList.forEach((item, index) => {
+                const cat = item.category || 'Общие';
+                if (!categories[cat]) categories[cat] = [];
+                categories[cat].push({ ...item, rawIndex: index });
             });
-        });
 
-        renderServicesUI();
-    } catch (err) {
-        container.innerHTML = '<div class="p-6 bg-red-950/30 border border-red-800/50 rounded text-xs text-red-300">Ошибка загрузки: ' + err.message + '</div>';
-    }
-}
+            Object.keys(categories).forEach(catName => {
+                const items = categories[catName];
+                const catCard = document.createElement('div');
+                catCard.className = 'bg-brand-card border border-brand-border rounded p-5 space-y-4 relative group';
 
-function renderServicesUI() {
-    const container = document.getElementById('services-container');
-    container.innerHTML = '';
-    if (rawServicesList.length === 0) {
-        container.innerHTML = '<div class="p-6 text-center text-brand-muted text-xs bg-brand-card border border-brand-border rounded">Прайс-лист пуст.</div>';
-        updateSummary(); return;
-    }
+                const header = document.createElement('div');
+                header.className = 'flex items-center justify-between border-b border-brand-border/50 pb-2';
+                
+                const title = document.createElement('h3');
+                title.className = 'text-sm font-semibold tracking-wide text-brand-ivory';
+                title.textContent = catName;
+                header.appendChild(title);
 
-    const categories = {};
-    rawServicesList.forEach((item, index) => {
-        const cat = item.category || 'Общие';
-        if (!categories[cat]) categories[cat] = [];
-        categories[cat].push({ ...item, rawIndex: index });
-    });
+                if (isAdmin) {
+                    const headerRight = document.createElement('div');
+                    headerRight.className = 'flex items-center gap-2';
 
-    Object.keys(categories).forEach(catName => {
-        const items = categories[catName];
-        const catCard = document.createElement('div');
-        catCard.className = 'bg-brand-card border border-brand-border rounded p-5 space-y-4 relative group';
+                    const editCatBtn = document.createElement('button');
+                    editCatBtn.className = 'text-[10px] text-amber-400 hover:text-amber-300 border border-amber-900/50 px-2 py-0.5 rounded';
+                    editCatBtn.textContent = 'Изменить';
+                    editCatBtn.onclick = () => openEditCategory(items[0].categoryId, catName);
+                    
+                    const delCatBtn = document.createElement('button');
+                    delCatBtn.className = 'text-[10px] text-red-400 hover:text-red-300 border border-red-900/50 px-2 py-0.5 rounded';
+                    delCatBtn.textContent = 'Удалить раздел';
+                    delCatBtn.onclick = () => deleteCategory(items[0].categoryId, catName);
+                    
+                    headerRight.appendChild(editCatBtn);
+                    headerRight.appendChild(delCatBtn);
+                    header.appendChild(headerRight);
+                }
 
-        const header = document.createElement('div');
-        header.className = 'flex items-center justify-between border-b border-brand-border/50 pb-2';
-        
-        const title = document.createElement('h3');
-        title.className = 'text-sm font-semibold tracking-wide text-brand-ivory';
-        title.textContent = catName;
-        header.appendChild(title);
+                catCard.appendChild(header);
 
-        if (isAdmin) {
-            const delCatBtn = document.createElement('button');
-            delCatBtn.className = 'text-[10px] text-red-400 hover:text-red-300 border border-red-900/50 px-2 py-0.5 rounded';
-            delCatBtn.textContent = 'Удалить раздел';
-            delCatBtn.onclick = () => deleteCategory(items[0].categoryId, catName);
-            header.appendChild(delCatBtn);
-        }
-        catCard.appendChild(header);
+                const itemsWrap = document.createElement('div');
+                itemsWrap.className = 'space-y-2';
+                items.forEach(item => itemsWrap.appendChild(item.type === 'counter' ? renderCounterRow(item) : renderCheckboxRow(item)));
+                catCard.appendChild(itemsWrap);
 
-        const itemsWrap = document.createElement('div');
-        itemsWrap.className = 'space-y-2';
-        items.forEach(item => itemsWrap.appendChild(item.type === 'counter' ? renderCounterRow(item) : renderCheckboxRow(item)));
-        catCard.appendChild(itemsWrap);
-
-        if (isAdmin) {
-            const addItemBtn = document.createElement('button');
-            addItemBtn.className = 'w-full mt-2 py-1.5 border border-dashed border-brand-border hover:border-amber-500/50 text-amber-400 text-[11px] rounded transition-colors';
-            addItemBtn.textContent = '+ Добавить услугу';
-            addItemBtn.onclick = () => addNewItemToCat(items[0].categoryId);
-            catCard.appendChild(addItemBtn);
-        }
-        container.appendChild(catCard);
-    });
-    updateSummary();
-}
-
-function renderCounterRow(item) {
-    const curQty = selectedState[item.id] ? selectedState[item.id].qty : 0;
-    const row = document.createElement('div');
-    row.className = 'flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors text-xs';
-
-    const left = document.createElement('div');
-    left.className = 'pr-2';
-    const n = document.createElement('div');
-    n.className = 'font-medium text-brand-ivory';
-    n.textContent = item.name;
-    left.appendChild(n);
-    if (item.desc) {
-        const d = document.createElement('div');
-        d.className = 'text-brand-muted text-[10px]';
-        d.textContent = item.desc;
-        left.appendChild(d);
-    }
-    row.appendChild(left);
-
-    const right = document.createElement('div');
-    right.className = 'flex items-center gap-3 shrink-0';
-    const counter = document.createElement('div');
-    counter.className = 'flex items-center border border-brand-border rounded bg-black/40';
-
-    const btnMinus = document.createElement('button'); btnMinus.type='button'; btnMinus.className='px-2 py-0.5 text-brand-muted hover:text-white'; btnMinus.textContent='-'; btnMinus.onclick = () => changeQty(item.id, -1);
-    const qtyVal = document.createElement('span'); qtyVal.className='px-2 font-mono text-brand-ivory'; qtyVal.textContent=String(curQty); qtyVal.id = 'qty-' + item.id;
-    const btnPlus = document.createElement('button'); btnPlus.type='button'; btnPlus.className='px-2 py-0.5 text-brand-muted hover:text-white'; btnPlus.textContent='+'; btnPlus.onclick = () => changeQty(item.id, 1);
-
-    counter.appendChild(btnMinus); counter.appendChild(qtyVal); counter.appendChild(btnPlus);
-    right.appendChild(counter);
-
-    const priceEl = document.createElement('span');
-    priceEl.className = 'font-mono text-brand-ivory w-20 text-right';
-    priceEl.textContent = formatPrice(item.price) + '/шт';
-    right.appendChild(priceEl);
-
-    if (isAdmin) {
-        const delBtn = document.createElement('button'); delBtn.className = 'text-red-400 hover:text-red-300 text-xs px-1'; delBtn.textContent = 'X';
-        delBtn.onclick = () => deleteItem(item.id);
-        right.appendChild(delBtn);
-    }
-    row.appendChild(right);
-    return row;
-}
-
-function renderCheckboxRow(item) {
-    const isChecked = !!(selectedState[item.id] && selectedState[item.id].qty > 0);
-    const label = document.createElement('label');
-    label.className = 'flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors cursor-pointer group text-xs';
-
-    const left = document.createElement('div');
-    left.className = 'flex items-center gap-3';
-
-    const cb = document.createElement('input'); cb.type='checkbox'; cb.className='custom-checkbox'; cb.checked=isChecked;
-    cb.onchange = (e) => toggleItem(item.id, e.target.checked);
-
-    const textWrap = document.createElement('div');
-    const n = document.createElement('div'); n.className='font-medium group-hover:text-white'; n.textContent=item.name;
-    textWrap.appendChild(n);
-    if (item.desc) {
-        const d = document.createElement('div'); d.className='text-brand-muted text-[10px]'; d.textContent=item.desc;
-        textWrap.appendChild(d);
-    }
-    left.appendChild(cb); left.appendChild(textWrap);
-    label.appendChild(left);
-
-    const right = document.createElement('div');
-    right.className = 'flex items-center gap-2';
-
-    const priceEl = document.createElement('span'); priceEl.className='font-mono text-brand-ivory'; priceEl.textContent=formatPrice(item.price);
-    right.appendChild(priceEl);
-
-    if (isAdmin) {
-        const delBtn = document.createElement('button'); delBtn.className='text-red-400 hover:text-red-300 text-xs px-1'; delBtn.textContent='X';
-        delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); deleteItem(item.id); };
-        right.appendChild(delBtn);
-    }
-    label.appendChild(right);
-    return label;
-}
-
-function toggleItem(id, checked) {
-    const item = rawServicesList.find(i => i.id === id);
-    if (!item) return;
-    if (checked) selectedState[id] = { name: item.name, price: item.price, qty: 1, isCounter: false };
-    else delete selectedState[id];
-    updateSummary();
-}
-
-function changeQty(id, delta) {
-    const item = rawServicesList.find(i => i.id === id);
-    if (!item) return;
-    const cur = selectedState[id] ? selectedState[id].qty : 0;
-    const next = Math.max(0, cur + delta);
-    
-    if (next === 0) delete selectedState[id];
-    else selectedState[id] = { name: item.name, price: item.price, qty: next, isCounter: true };
-    
-    const qtyEl = document.getElementById('qty-' + id);
-    if (qtyEl) qtyEl.textContent = String(next);
-    
-    updateSummary();
-}
-
-function updateSummary() {
-    const summaryList = document.getElementById('summary-list');
-    summaryList.innerHTML = '';
-    let total = 0;
-    let count = 0;
-
-    Object.keys(selectedState).forEach(k => {
-        const item = selectedState[k];
-        const lineTotal = item.price * item.qty;
-        total += lineTotal;
-        count += item.qty;
-
-        const row = document.createElement('div'); row.className = 'flex justify-between items-start gap-2 border-b border-brand-border/30 pb-1.5';
-        const labelSpan = document.createElement('span'); labelSpan.className = 'text-brand-ivory leading-tight';
-        labelSpan.textContent = item.isCounter ? `${item.name} (${item.qty} шт)` : item.name;
-        const priceSpan = document.createElement('span'); priceSpan.className = 'font-mono text-brand-muted shrink-0'; priceSpan.textContent = formatPrice(lineTotal);
-
-        row.appendChild(labelSpan); row.appendChild(priceSpan); summaryList.appendChild(row);
-    });
-
-    if (count === 0) summaryList.innerHTML = '<p class="text-brand-muted text-center py-8 italic">Услуги не выбраны.</p>';
-
-    const totalPriceEl = document.getElementById('total-price');
-    totalPriceEl.textContent = formatPrice(total);
-    totalPriceEl.classList.remove('price-updated');
-    void totalPriceEl.offsetWidth;
-    totalPriceEl.classList.add('price-updated');
-
-    document.getElementById('modal-items-count').textContent = String(count);
-    document.getElementById('modal-total-price').textContent = formatPrice(total);
-}
-
-// ==========================================
-// АДМИНКА
-// ==========================================
-function checkAdminTrigger() {
-    if (window.location.hash === ADMIN_TRIGGER) {
-        document.getElementById('admin-pass-modal').classList.remove('hidden');
-        history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
-}
-
-function enableAdminMode() {
-    isAdmin = true;
-    document.getElementById('admin-indicator').classList.remove('hidden');
-    document.getElementById('admin-toolbar').classList.remove('hidden');
-    renderServicesUI();
-}
-
-async function exitAdminMode() {
-    await supabaseClient.auth.signOut();
-    isAdmin = false;
-    adminUser = null;
-    document.getElementById('admin-indicator').classList.add('hidden');
-    document.getElementById('admin-toolbar').classList.add('hidden');
-    renderServicesUI();
-    showToast('Выход из режима редактора');
-}
-
-// Открытие окна добавления услуги
-function addNewItemToCat(categoryId) {
-    document.getElementById('new-service-category-id').value = categoryId;
-    document.getElementById('new-service-name').value = '';
-    document.getElementById('new-service-price').value = '3000';
-    document.getElementById('new-service-desc').value = '';
-    document.getElementById('new-service-type').value = 'checkbox';
-    document.getElementById('service-modal').classList.remove('hidden');
-}
-
-// Отмена
-document.getElementById('cancel-service-btn').onclick = () => {
-    document.getElementById('service-modal').classList.add('hidden');
-};
-
-// Сохранение новой услуги
-document.getElementById('save-service-btn').onclick = async () => {
-    const catId = document.getElementById('new-service-category-id').value;
-    const name = document.getElementById('new-service-name').value.trim();
-    const price = parseInt(document.getElementById('new-service-price').value, 10) || 0;
-    const desc = document.getElementById('new-service-desc').value.trim();
-    const type = document.getElementById('new-service-type').value;
-
-    if (!name) { showToast('Введите название услуги', true); return; }
-
-    const { error } = await supabaseClient.from('services').insert([{
-        category_id: catId,
-        name: name,
-        price: Math.max(0, price),
-        description: desc,
-        type: type
-    }]);
-
-    if (error) {
-        showToast('Ошибка добавления', true);
-    } else {
-        document.getElementById('service-modal').classList.add('hidden');
-        showToast('Услуга добавлена');
-        loadServices(); 
-    }
-};
-
-async function deleteItem(id) {
-    if (confirm('Удалить эту позицию?')) {
-        const { error } = await supabaseClient.from('services').delete().eq('id', id);
-        if (error) showToast('Ошибка удаления', true);
-        else { 
-            if (selectedState[id]) delete selectedState[id];
-            showToast('Удалено'); 
-            loadServices(); 
-        }
-    }
-}
-
-async function deleteCategory(categoryId, catName) {
-    if (confirm(`Удалить весь раздел "${catName}"?`)) {
-        const { error } = await supabaseClient.from('categories').delete().eq('id', categoryId);
-        if (error) showToast('Ошибка удаления', true);
-        else { 
-            showToast('Раздел удален'); 
-            loadServices(); 
-            selectedState = {}; 
+                if (isAdmin) {
+                    const addItemBtn = document.createElement('button');
+                    addItemBtn.className = 'w-full mt-2 py-1.5 border border-dashed border-brand-border hover:border-amber-500/50 text-amber-400 text-[11px] rounded transition-colors';
+                    addItemBtn.textContent = '+ Добавить услугу';
+                    addItemBtn.onclick = () => addNewItemToCat(items[0].categoryId);
+                    catCard.appendChild(addItemBtn);
+                }
+                container.appendChild(catCard);
+            });
             updateSummary();
         }
-    }
-}
 
-document.getElementById('add-category-btn').onclick = () => {
-    document.getElementById('new-category-name').value = '';
-    document.getElementById('category-modal').classList.remove('hidden');
-};
+        function renderCounterRow(item) {
+            const curQty = selectedState[item.id] ? selectedState[item.id].qty : 0;
+            const row = document.createElement('div');
+            row.className = 'flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors text-xs';
 
-document.getElementById('cancel-category-btn').onclick = () => {
-    document.getElementById('category-modal').classList.add('hidden');
-};
+            const left = document.createElement('div');
+            left.className = 'pr-2';
+            const n = document.createElement('div');
+            n.className = 'font-medium text-brand-ivory';
+            n.textContent = item.name;
+            left.appendChild(n);
+            if (item.desc) {
+                const d = document.createElement('div');
+                d.className = 'text-brand-muted text-[10px]';
+                d.textContent = item.desc;
+                left.appendChild(d);
+            }
+            row.appendChild(left);
 
-document.getElementById('save-category-btn').onclick = async () => {
-    const catName = document.getElementById('new-category-name').value.trim();
-    const catId = document.getElementById('new-category-id').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, ''); // Оставляем только английские буквы и цифры
+            const right = document.createElement('div');
+            right.className = 'flex items-center gap-3 shrink-0';
+            const counter = document.createElement('div');
+            counter.className = 'flex items-center border border-brand-border rounded bg-black/40';
 
-    if (!catName) { showToast('Введите название', true); return; }
-    if (!catId) { showToast('Введите короткий ID (на английском)', true); return; }
+            const btnMinus = document.createElement('button'); btnMinus.type='button'; btnMinus.className='px-2 py-0.5 text-brand-muted hover:text-white'; btnMinus.textContent='-'; btnMinus.onclick = () => changeQty(item.id, -1);
+            const qtyVal = document.createElement('span'); qtyVal.className='px-2 font-mono text-brand-ivory'; qtyVal.textContent=String(curQty); qtyVal.id = 'qty-' + item.id;
+            const btnPlus = document.createElement('button'); btnPlus.type='button'; btnPlus.className='px-2 py-0.5 text-brand-muted hover:text-white'; btnPlus.textContent='+'; btnPlus.onclick = () => changeQty(item.id, 1);
 
-    const { data, error } = await supabaseClient.from('categories').insert([{ id: catId, name: catName }]).select();
-    if (error) {
-        console.error(error);
-        showToast('Ошибка: возможно, такой ID уже есть', true);
-    } else {
-        document.getElementById('category-modal').classList.add('hidden');
-        document.getElementById('new-category-name').value = '';
-        document.getElementById('new-category-id').value = '';
-        showToast('Раздел создан');
-        loadServices(); 
-    }
-};
+            counter.appendChild(btnMinus); counter.appendChild(qtyVal); counter.appendChild(btnPlus);
+            right.appendChild(counter);
 
-document.getElementById('admin-auth-submit').onclick = async () => {
-    const email = 'bastick125@gmail.com'; // Тот email, который ты создал в Supabase
-    const password = document.getElementById('admin-pass-input').value;
-    if (!password) return;
+            const priceEl = document.createElement('span');
+            priceEl.className = 'font-mono text-brand-ivory w-20 text-right';
+            priceEl.textContent = formatPrice(item.price) + '/шт';
+            right.appendChild(priceEl);
+            
+            if (isAdmin) {
+                const editBtn = document.createElement('button'); 
+                editBtn.className = 'text-amber-400 hover:text-amber-300 text-xs px-1'; 
+                editBtn.textContent = '✎';
+                editBtn.onclick = () => openEditService(item);
+                right.appendChild(editBtn);
+                
+                const delBtn = document.createElement('button'); 
+                delBtn.className = 'text-red-400 hover:text-red-300 text-xs px-1'; 
+                delBtn.textContent = 'X';
+                delBtn.onclick = () => deleteItem(item.id);
+                right.appendChild(delBtn);
+            }
+            row.appendChild(right);
+            return row;
+        }
 
-    const btn = document.getElementById('admin-auth-submit');
-    const origText = btn.textContent;
-    btn.textContent = '...'; btn.disabled = true;
+        function renderCheckboxRow(item) {
+            const isChecked = !!(selectedState[item.id] && selectedState[item.id].qty > 0);
+            const label = document.createElement('label');
+            label.className = 'flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors cursor-pointer group text-xs';
 
-    // Логинимся через Supabase Auth
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            const left = document.createElement('div');
+            left.className = 'flex items-center gap-3';
 
-    if (error) {
-        alert('Ошибка Supabase: ' + error.message); // Теперь мы увидим настоящую причину!
-        console.error(error);
-    } else {
+            const cb = document.createElement('input'); cb.type='checkbox'; cb.className='custom-checkbox'; cb.checked=isChecked;
+            cb.onchange = (e) => toggleItem(item.id, e.target.checked);
 
-        adminUser = data.user;
-        document.getElementById('admin-pass-modal').classList.add('hidden');
-        enableAdminMode();
-        showToast('Режим редактора включен');
-        document.getElementById('admin-pass-input').value = '';
-    }
-    
-    btn.textContent = origText; btn.disabled = false;
-};
+            const textWrap = document.createElement('div');
+            const n = document.createElement('div'); n.className='font-medium group-hover:text-white'; n.textContent=item.name;
+            textWrap.appendChild(n);
+            if (item.desc) {
+                const d = document.createElement('div'); d.className='text-brand-muted text-[10px]'; d.textContent=item.desc;
+                textWrap.appendChild(d);
+            }
+            left.appendChild(cb); left.appendChild(textWrap);
+            label.appendChild(left);
 
-document.getElementById('admin-auth-cancel').onclick = () => document.getElementById('admin-pass-modal').classList.add('hidden');
-document.getElementById('exit-admin-btn').onclick = exitAdminMode;
+            const right = document.createElement('div');
+            right.className = 'flex items-center gap-2';
 
-// ==========================================
-// ОТПРАВКА ЗАКАЗА В SUPABASE
-// ==========================================
-document.getElementById('order-form').onsubmit = async (e) => {
-    e.preventDefault();
+            const priceEl = document.createElement('span'); priceEl.className='font-mono text-brand-ivory'; priceEl.textContent=formatPrice(item.price);
+            right.appendChild(priceEl);
 
-    const name = document.getElementById('client-name').value.trim();
-    const contact = document.getElementById('client-contact').value.trim();
-    const comment = document.getElementById('client-comment').value.trim();
+            if (isAdmin) {
+                const editBtn = document.createElement('button'); 
+                editBtn.className='text-amber-400 hover:text-amber-300 text-xs px-1'; 
+                editBtn.textContent='✎';
+                editBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openEditService(item); };
+                right.appendChild(editBtn);
 
-    // 1. Валидация
-    const nameRegex = /^[а-яА-ЯёЁa-zA-Z\s\-]+$/;
-    if (name.length < 2 || !nameRegex.test(name)) { showToast('Имя: только буквы (мин. 2 символа)', true); return; }
-    
-    const isTg = /^@[a-zA-Z0-9_]{4,32}$/.test(contact);
-    let isPhone = false;
-    if (!isTg) {
-        const cleanPhone = contact.replace(/\D/g, ''); 
-        if (cleanPhone.length === 11 && (cleanPhone.startsWith('7') || cleanPhone.startsWith('8'))) isPhone = true;
-    }
-    if (!isTg && !isPhone) { showToast('Введите 11-значный номер или @username', true); return; }
+                const delBtn = document.createElement('button'); 
+                delBtn.className='text-red-400 hover:text-red-300 text-xs px-1'; 
+                delBtn.textContent='X';
+                delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); deleteItem(item.id); };
+                right.appendChild(delBtn);
+            }
+            label.appendChild(right);
+            return label;
+        }
 
-    const badPattern = /[<>]|(<script)|(select\s)|(union\s)|(drop\s)|(insert\s)|(update\s)|(delete\s)|(--)|(\/\*)|(\*\/)|(javascript:)|(onerror)|(onload)/i;
-    if (badPattern.test(name) || badPattern.test(contact) || badPattern.test(comment)) { showToast('Запрещенные символы в тексте', true); return; }
+        // ==========================================
+        // ЛОГИКА КОРЗИНЫ
+        // ==========================================
+        function toggleItem(id, checked) {
+            const item = rawServicesList.find(i => i.id === id);
+            if (!item) return;
+            if (checked) selectedState[id] = { name: item.name, price: item.price, qty: 1, isCounter: false };
+            else delete selectedState[id];
+            updateSummary();
+        }
 
-    if (comment.length > 0) {
-        const letters = comment.match(/[а-яА-ЯёЁa-zA-Z]/g) || [];
-        const totalNoSpaces = comment.replace(/\s/g, '').length;
-        if (letters.length < 2 || (letters.length / totalNoSpaces < 0.4)) { showToast('Слишком много спецсимволов в комментарии', true); return; }
-    }
+        function changeQty(id, delta) {
+            const item = rawServicesList.find(i => i.id === id);
+            if (!item) return;
+            const cur = selectedState[id] ? selectedState[id].qty : 0;
+            const next = Math.max(0, cur + delta);
+            
+            if (next === 0) delete selectedState[id];
+            else selectedState[id] = { name: item.name, price: item.price, qty: next, isCounter: true };
+            
+            const qtyEl = document.getElementById('qty-' + id);
+            if (qtyEl) qtyEl.textContent = String(next);
+            
+            updateSummary();
+        }
 
-    const privacyCheckbox = document.getElementById('privacy-checkbox');
-    if (!privacyCheckbox || !privacyCheckbox.checked) { showToast('Необходимо согласие на обработку данных', true); return; }
+        function updateSummary() {
+            const summaryList = document.getElementById('summary-list');
+            summaryList.innerHTML = '';
+            let total = 0;
+            let count = 0;
 
-    // 2. Подготовка данных
-    const items = Object.keys(selectedState).map(k => ({
-        id: k,
-        name: selectedState[k].name, 
-        qty: selectedState[k].qty, 
-        total: selectedState[k].price * selectedState[k].qty
-    }));
-    const total = items.reduce((a, b) => a + b.total, 0);
+            Object.keys(selectedState).forEach(k => {
+                const item = selectedState[k];
+                const lineTotal = item.price * item.qty;
+                total += lineTotal;
+                count += item.qty;
 
-    // ВОТ ЗДЕСЬ МЫ СОЗДАЕМ ЧИТАЕМЫЙ ТЕКСТ
-    const itemsSummaryText = items.map(i => 
-        `${i.name} (${i.qty} шт) - ${i.total} руб.`
-    ).join('\n');
+                const row = document.createElement('div'); row.className = 'flex justify-between items-start gap-2 border-b border-brand-border/30 pb-1.5';
+                const labelSpan = document.createElement('span'); labelSpan.className = 'text-brand-ivory leading-tight';
+                labelSpan.textContent = item.isCounter ? `${item.name} (${item.qty} шт)` : item.name;
+                const priceSpan = document.createElement('span'); priceSpan.className = 'font-mono text-brand-muted shrink-0'; priceSpan.textContent = formatPrice(lineTotal);
 
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const origText = submitBtn.textContent;
-    submitBtn.disabled = true; submitBtn.textContent = 'Отправка...';
+                row.appendChild(labelSpan); row.appendChild(priceSpan); summaryList.appendChild(row);
+            });
 
-    // 3. Отправка в базу
-    try {
-        const { error } = await supabaseClient.from('orders').insert([{
-            client_name: name,
-            client_contact: contact,
-            comment: comment,
-            items: items,                       // Оставляем технический формат (для программы)
-            items_summary: itemsSummaryText,    // ДОБАВЛЯЕМ ЧИТАЕМЫЙ ТЕКСТ (для тебя)
-            total: total
-        }]);
+            if (count === 0) summaryList.innerHTML = '<p class="text-brand-muted text-center py-8 italic">Услуги не выбраны.</p>';
 
-        if (error) throw new Error(error.message);
+            const totalPriceEl = document.getElementById('total-price');
+            totalPriceEl.textContent = formatPrice(total);
+            totalPriceEl.classList.remove('price-updated');
+            void totalPriceEl.offsetWidth;
+            totalPriceEl.classList.add('price-updated');
 
-        document.getElementById('order-form').classList.add('hidden');
-        document.getElementById('success-message').classList.remove('hidden');
-        document.getElementById('order-form').reset();
-    } catch (err) {
-        showToast('Ошибка отправки. Попробуйте позже.', true);
-        console.error(err);
-    } finally {
-        submitBtn.disabled = false; submitBtn.textContent = origText;
-    }
-};
-// ==========================================
-// ОСТАЛЬНОЙ ИНТЕРФЕЙС
-// ==========================================
-document.getElementById('reset-btn').onclick = () => { selectedState = {}; renderServicesUI(); showToast('Выбор сброшен'); };
+            document.getElementById('modal-items-count').textContent = String(count);
+            document.getElementById('modal-total-price').textContent = formatPrice(total);
+        }
 
-document.getElementById('copy-summary-btn').onclick = async () => {
-    let text = 'СМЕТА УСЛУГ МИБ\n-----------------------------------\n';
-    if (Object.keys(selectedState).length === 0) text += 'Услуги не выбраны.\n';
-    else {
-        Object.keys(selectedState).forEach(k => {
-            const item = selectedState[k];
-            text += `- ${item.isCounter ? `${item.name} (${item.qty} шт)` : item.name}: ${formatPrice(item.price * item.qty)}\n`;
+        // ==========================================
+        // АДМИНКА (РЕДАКТИРОВАНИЕ)
+        // ==========================================
+        function checkAdminTrigger() {
+            if (window.location.hash === ADMIN_TRIGGER) {
+                document.getElementById('admin-pass-modal').classList.remove('hidden');
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+        }
+
+        function enableAdminMode() {
+            isAdmin = true;
+            document.getElementById('admin-indicator').classList.remove('hidden');
+            document.getElementById('admin-toolbar').classList.remove('hidden');
+            renderServicesUI();
+        }
+
+        async function exitAdminMode() {
+            await supabaseClient.auth.signOut();
+            isAdmin = false;
+            adminUser = null;
+            document.getElementById('admin-indicator').classList.add('hidden');
+            document.getElementById('admin-toolbar').classList.add('hidden');
+            renderServicesUI();
+            showToast('Выход из режима редактора');
+        }
+
+        function addNewItemToCat(categoryId) {
+            editingServiceId = null;
+            document.getElementById('new-service-category-id').value = categoryId;
+            document.getElementById('new-service-name').value = '';
+            document.getElementById('new-service-price').value = '3000';
+            document.getElementById('new-service-desc').value = '';
+            document.getElementById('new-service-type').value = 'checkbox';
+            document.querySelector('#service-modal h3').textContent = '// Новая услуга';
+            document.getElementById('save-service-btn').textContent = 'Добавить';
+            document.getElementById('service-modal').classList.remove('hidden');
+        }
+
+        function openEditService(item) {
+            editingServiceId = item.id;
+            document.getElementById('new-service-category-id').value = item.categoryId;
+            document.getElementById('new-service-name').value = item.name;
+            document.getElementById('new-service-price').value = item.price;
+            document.getElementById('new-service-desc').value = item.desc;
+            document.getElementById('new-service-type').value = item.type;
+            document.querySelector('#service-modal h3').textContent = '// Редактировать услугу';
+            document.getElementById('save-service-btn').textContent = 'Сохранить';
+            document.getElementById('service-modal').classList.remove('hidden');
+        }
+
+        document.getElementById('cancel-service-btn').onclick = () => document.getElementById('service-modal').classList.add('hidden');
+
+        document.getElementById('save-service-btn').onclick = async () => {
+            const catId = document.getElementById('new-service-category-id').value;
+            const name = document.getElementById('new-service-name').value.trim();
+            const price = parseInt(document.getElementById('new-service-price').value, 10) || 0;
+            const desc = document.getElementById('new-service-desc').value.trim();
+            const type = document.getElementById('new-service-type').value;
+
+            if (!name) { showToast('Введите название услуги', true); return; }
+
+            let error;
+            if (editingServiceId) {
+                const { error: err } = await supabaseClient.from('services').update({ name: name, price: Math.max(0, price), description: desc, type: type }).eq('id', editingServiceId);
+                error = err;
+            } else {
+                const { error: err } = await supabaseClient.from('services').insert([{ category_id: catId, name: name, price: Math.max(0, price), description: desc, type: type }]);
+                error = err;
+            }
+
+            if (error) {
+                showToast('Ошибка сохранения', true);
+                console.error(error);
+            } else {
+                document.getElementById('service-modal').classList.add('hidden');
+                showToast(editingServiceId ? 'Услуга обновлена' : 'Услуга добавлена');
+                loadServices(); 
+            }
+        };
+
+        async function deleteItem(id) {
+            if (confirm('Удалить эту позицию?')) {
+                const { error } = await supabaseClient.from('services').delete().eq('id', id);
+                if (error) showToast('Ошибка удаления', true);
+                else { 
+                    if (selectedState[id]) delete selectedState[id];
+                    showToast('Удалено'); 
+                    loadServices(); 
+                }
+            }
+        }
+
+        async function deleteCategory(categoryId, catName) {
+            if (confirm(`Удалить весь раздел "${catName}"?`)) {
+                const { error } = await supabaseClient.from('categories').delete().eq('id', categoryId);
+                if (error) showToast('Ошибка удаления', true);
+                else { 
+                    showToast('Раздел удален'); 
+                    loadServices(); 
+                    selectedState = {}; 
+                    updateSummary();
+                }
+            }
+        }
+
+        document.getElementById('add-category-btn').onclick = () => {
+            editingCategoryId = null;
+            document.getElementById('new-category-name').value = '';
+            document.getElementById('new-category-id').value = '';
+            document.querySelector('#category-modal h3').textContent = '// Новый раздел';
+            document.getElementById('save-category-btn').textContent = 'Создать';
+            document.getElementById('category-modal').classList.remove('hidden');
+        };
+
+        function openEditCategory(id, name) {
+            editingCategoryId = id;
+            document.getElementById('new-category-name').value = name;
+            document.getElementById('new-category-id').value = id;
+            document.querySelector('#category-modal h3').textContent = '// Редактировать раздел';
+            document.getElementById('save-category-btn').textContent = 'Сохранить';
+            document.getElementById('category-modal').classList.remove('hidden');
+        }
+
+        document.getElementById('cancel-category-btn').onclick = () => document.getElementById('category-modal').classList.add('hidden');
+
+        document.getElementById('save-category-btn').onclick = async () => {
+            const catName = document.getElementById('new-category-name').value.trim();
+            const catId = document.getElementById('new-category-id').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+
+            if (!catName) { showToast('Введите название', true); return; }
+            if (!catId) { showToast('Введите короткий ID (на английском)', true); return; }
+
+            let error;
+            if (editingCategoryId) {
+                const { error: err } = await supabaseClient.from('categories').update({ id: catId, name: catName }).eq('id', editingCategoryId);
+                error = err;
+            } else {
+                const { error: err } = await supabaseClient.from('categories').insert([{ id: catId, name: catName }]);
+                error = err;
+            }
+
+            if (error) {
+                console.error(error);
+                showToast('Ошибка: возможно, такой ID уже занят', true);
+            } else {
+                document.getElementById('category-modal').classList.add('hidden');
+                showToast(editingCategoryId ? 'Раздел обновлен' : 'Раздел создан');
+                loadServices(); 
+            }
+        };
+
+        document.getElementById('admin-auth-submit').onclick = async () => {
+            const email = 'bastick125@gmail.com';
+            const password = document.getElementById('admin-pass-input').value;
+            if (!password) return;
+
+            const btn = document.getElementById('admin-auth-submit');
+            const origText = btn.textContent;
+            btn.textContent = '...'; btn.disabled = true;
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                alert('Ошибка Supabase: ' + error.message);
+                console.error(error);
+            } else {
+                adminUser = data.user;
+                document.getElementById('admin-pass-modal').classList.add('hidden');
+                enableAdminMode();
+                showToast('Режим редактора включен');
+                document.getElementById('admin-pass-input').value = '';
+            }
+            
+            btn.textContent = origText; 
+            btn.disabled = false;
+        };
+
+        document.getElementById('admin-auth-cancel').onclick = () => document.getElementById('admin-pass-modal').classList.add('hidden');
+        document.getElementById('exit-admin-btn').onclick = exitAdminMode;
+
+        // ==========================================
+        // ОТПРАВКА ЗАКАЗА
+        // ==========================================
+        document.getElementById('order-form').onsubmit = async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('client-name').value.trim();
+            const contact = document.getElementById('client-contact').value.trim();
+            const comment = document.getElementById('client-comment').value.trim();
+
+            const nameRegex = /^[а-яА-ЯёЁa-zA-Z\s\-]+$/;
+            if (name.length < 2 || !nameRegex.test(name)) { showToast('Имя: только буквы (мин. 2 символа)', true); return; }
+            
+            const isTg = /^@[a-zA-Z0-9_]{4,32}$/.test(contact);
+            let isPhone = false;
+            if (!isTg) {
+                const cleanPhone = contact.replace(/\D/g, ''); 
+                if (cleanPhone.length === 11 && (cleanPhone.startsWith('7') || cleanPhone.startsWith('8'))) isPhone = true;
+            }
+            if (!isTg && !isPhone) { showToast('Введите 11-значный номер или @username', true); return; }
+
+            const badPattern = /[<>]|(<script)|(select\s)|(union\s)|(drop\s)|(insert\s)|(update\s)|(delete\s)|(--)|(\/\*)|(\*\/)|(javascript:)|(onerror)|(onload)/i;
+            if (badPattern.test(name) || badPattern.test(contact) || badPattern.test(comment)) { showToast('Запрещенные символы в тексте', true); return; }
+
+            if (comment.length > 0) {
+                const letters = comment.match(/[а-яА-ЯёЁa-zA-Z]/g) || [];
+                const totalNoSpaces = comment.replace(/\s/g, '').length;
+                if (letters.length < 2 || (letters.length / totalNoSpaces < 0.4)) { showToast('Слишком много спецсимволов в комментарии', true); return; }
+            }
+
+            const privacyCheckbox = document.getElementById('privacy-checkbox');
+            if (!privacyCheckbox || !privacyCheckbox.checked) { showToast('Необходимо согласие на обработку данных', true); return; }
+
+            const items = Object.keys(selectedState).map(k => ({
+                id: k,
+                name: selectedState[k].name, 
+                qty: selectedState[k].qty, 
+                total: selectedState[k].price * selectedState[k].qty
+            }));
+            const total = items.reduce((a, b) => a + b.total, 0);
+
+            const itemsSummaryText = items.map(i => 
+                `${i.name} (${i.qty} шт) - ${i.total} руб.`
+            ).join('\n');
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const origText = submitBtn.textContent;
+            submitBtn.disabled = true; submitBtn.textContent = 'Отправка...';
+
+            try {
+                const { error } = await supabaseClient.from('orders').insert([{
+                    client_name: name,
+                    client_contact: contact,
+                    comment: comment,
+                    items: items,
+                    items_summary: itemsSummaryText,
+                    total: total
+                }]);
+
+                if (error) throw new Error(error.message);
+
+                document.getElementById('order-form').classList.add('hidden');
+                document.getElementById('success-message').classList.remove('hidden');
+                document.getElementById('order-form').reset();
+            } catch (err) {
+                showToast('Ошибка отправки. Попробуйте позже.', true);
+                console.error(err);
+            } finally {
+                submitBtn.disabled = false; submitBtn.textContent = origText;
+            }
+        };
+
+        // ==========================================
+        // ИНТЕРФЕЙС
+        // ==========================================
+        document.getElementById('reset-btn').onclick = () => { selectedState = {}; renderServicesUI(); showToast('Выбор сброшен'); };
+
+        document.getElementById('copy-summary-btn').onclick = async () => {
+            let text = 'СМЕТА УСЛУГ МИБ\n-----------------------------------\n';
+            if (Object.keys(selectedState).length === 0) text += 'Услуги не выбраны.\n';
+            else {
+                Object.keys(selectedState).forEach(k => {
+                    const item = selectedState[k];
+                    text += `- ${item.isCounter ? `${item.name} (${item.qty} шт)` : item.name}: ${formatPrice(item.price * item.qty)}\n`;
+                });
+                text += '-----------------------------------\nИТОГО: ' + document.getElementById('total-price').textContent + '\n';
+            }
+            try { await navigator.clipboard.writeText(text); showToast('Смета скопирована!'); }
+            catch (e) { showToast('Не удалось скопировать', true); }
+        };
+
+        document.getElementById('open-modal-btn').onclick = () => {
+            if (Object.keys(selectedState).length === 0) { showToast('Выберите хотя бы одну услугу', true); return; }
+            document.getElementById('order-form').classList.remove('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+            document.getElementById('order-modal').classList.remove('hidden');
+        };
+
+        document.getElementById('close-modal-btn').onclick = () => {
+            document.getElementById('order-modal').classList.add('hidden');
+            document.getElementById('order-form').classList.remove('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+            document.getElementById('order-form').reset();
+            document.getElementById('privacy-checkbox').checked = false;
+        };
+
+        document.getElementById('finish-btn').onclick = () => {
+            document.getElementById('order-modal').classList.add('hidden');
+            document.getElementById('order-form').classList.remove('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+            document.getElementById('order-form').reset();
+            document.getElementById('privacy-checkbox').checked = false; 
+        };
+
+        const contactInput = document.getElementById('client-contact');
+        contactInput.addEventListener('input', function() {
+            let val = this.value;
+            if (val.startsWith('@')) { this.value = val.replace(/[^a-zA-Z0-9_@]/g, ''); return; }
+            let digits = val.replace(/\D/g, '');
+            if (digits.startsWith('7') || digits.startsWith('8')) digits = digits.substring(1);
+            digits = digits.substring(0, 10);
+            let formatted = '+7';
+            if (digits.length > 0) formatted += ' (' + digits.substring(0, 3);
+            if (digits.length >= 4) formatted += ') ' + digits.substring(3, 6);
+            if (digits.length >= 7) formatted += '-' + digits.substring(6, 8);
+            if (digits.length >= 9) formatted += '-' + digits.substring(8, 10);
+            this.value = formatted;
         });
-        text += '-----------------------------------\nИТОГО: ' + document.getElementById('total-price').textContent + '\n';
-    }
-    try { await navigator.clipboard.writeText(text); showToast('Смета скопирована!'); }
-    catch (e) { showToast('Не удалось скопировать', true); }
-};
+        contactInput.addEventListener('blur', function() {
+            if (this.value.trim() === '' || this.value.trim() === '+7') this.value = '+7 ';
+        });
 
-document.getElementById('open-modal-btn').onclick = () => {
-    if (Object.keys(selectedState).length === 0) { showToast('Выберите хотя бы одну услугу', true); return; }
-    document.getElementById('order-form').classList.remove('hidden');
-    document.getElementById('success-message').classList.add('hidden');
-    document.getElementById('order-modal').classList.remove('hidden');
-};
+        document.getElementById('close-privacy-btn').onclick = () => {
+            document.getElementById('privacy-modal').classList.add('hidden');
+            document.body.style.overflow = '';
+        };
+        document.getElementById('close-privacy-x').onclick = () => {
+            document.getElementById('privacy-modal').classList.add('hidden');
+            document.body.style.overflow = '';
+        };
+        document.getElementById('order-modal').addEventListener('click', function(e) {
+            if (e.target === this) document.getElementById('close-modal-btn').click();
+        });
+        document.getElementById('privacy-modal').addEventListener('click', function(e) {
+            if (e.target === this) document.getElementById('close-privacy-x').click();
+        });
 
-document.getElementById('close-modal-btn').onclick = () => {
-    document.getElementById('order-modal').classList.add('hidden');
-    document.getElementById('order-form').classList.remove('hidden');
-    document.getElementById('success-message').classList.add('hidden');
-    document.getElementById('order-form').reset();
-    document.getElementById('privacy-checkbox').checked = false;
-};
-
-document.getElementById('finish-btn').onclick = () => {
-    document.getElementById('order-modal').classList.add('hidden');
-    document.getElementById('order-form').classList.remove('hidden');
-    document.getElementById('success-message').classList.add('hidden');
-    document.getElementById('order-form').reset();
-    document.getElementById('privacy-checkbox').checked = false; 
-};
-
-const contactInput = document.getElementById('client-contact');
-contactInput.addEventListener('input', function() {
-    let val = this.value;
-    if (val.startsWith('@')) { this.value = val.replace(/[^a-zA-Z0-9_@]/g, ''); return; }
-    let digits = val.replace(/\D/g, '');
-    if (digits.startsWith('7') || digits.startsWith('8')) digits = digits.substring(1);
-    digits = digits.substring(0, 10);
-    let formatted = '+7';
-    if (digits.length > 0) formatted += ' (' + digits.substring(0, 3);
-    if (digits.length >= 4) formatted += ') ' + digits.substring(3, 6);
-    if (digits.length >= 7) formatted += '-' + digits.substring(6, 8);
-    if (digits.length >= 9) formatted += '-' + digits.substring(8, 10);
-    this.value = formatted;
-});
-contactInput.addEventListener('blur', function() {
-    if (this.value.trim() === '' || this.value.trim() === '+7') this.value = '+7 ';
-});
-
-document.getElementById('close-privacy-btn').onclick = () => {
-    document.getElementById('privacy-modal').classList.add('hidden');
-    document.body.style.overflow = '';
-};
-document.getElementById('close-privacy-x').onclick = () => {
-    document.getElementById('privacy-modal').classList.add('hidden');
-    document.body.style.overflow = '';
-};
-document.getElementById('order-modal').addEventListener('click', function(e) {
-    if (e.target === this) document.getElementById('close-modal-btn').click();
-});
-document.getElementById('privacy-modal').addEventListener('click', function(e) {
-    if (e.target === this) document.getElementById('close-privacy-x').click();
-});
-
-// Запуск при загрузке
-document.addEventListener('DOMContentLoaded', async () => { 
-    // Сначала проверяем сессию (вдруг админ уже вошел)
-    await checkSession(); 
-    // Только потом проверяем хеш (если сессии нет, покажет окно)
-    checkAdminTrigger();
-    loadServices(); 
-});
-</script>
+        document.addEventListener('DOMContentLoaded', async () => { 
+            await checkSession(); 
+            checkAdminTrigger();
+            loadServices();
+        });
+    </script>
 </body>
 </html>
