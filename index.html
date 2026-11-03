@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <link rel="preconnect" href="https://ibanvzomiosaboheuypl.supabase.co" crossorigin>
-    <link rel="dns-prefetch" href="https://ibanvzomiosaboheuypl.supabase.co">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>МИБ — Модернизация · Интеграция · Безопасность</title>
@@ -351,9 +349,35 @@
         // ==========================================
         // НАСТРОЙКИ SUPABASE
         // ==========================================
-        const SUPABASE_URL = 'https://ibanvzomiosaboheuypl.supabase.co';
+        const SUPABASE_DIRECT_URL = 'https://ibanvzomiosaboheuypl.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_2phCUJB76CHCnp7icBiolg_atb27p9H';
+
+        // Запросы идут через домен сайта (/sb/*): часть мобильных операторов не пропускает
+        // *.supabase.co, а домен сайта открывается. Прокси: functions/sb/[[path]].js
+        const USE_PROXY = location.protocol === 'http:' || location.protocol === 'https:';
+        const SUPABASE_URL = USE_PROXY ? location.origin + '/sb' : SUPABASE_DIRECT_URL;
+
+        // Запасной путь: если прокси недоступен, запрос уходит напрямую в Supabase.
+        async function supabaseFetch(input, init) {
+            const url = typeof input === 'string' ? input : input.url;
+            if (!USE_PROXY || !url.startsWith(SUPABASE_URL)) return fetch(input, init);
+            const direct = SUPABASE_DIRECT_URL + url.slice(SUPABASE_URL.length);
+            const method = ((init && init.method) || 'GET').toUpperCase();
+            let res;
+            try {
+                res = await fetch(input, init);
+            } catch (e) {
+                // Сетевая ошибка: повторяем напрямую только безопасные запросы (чтение)
+                if (method === 'GET' || method === 'HEAD') return fetch(direct, init);
+                throw e;
+            }
+            // Функция-прокси не задеплоена: вместо JSON приходит HTML сайта, идём напрямую
+            if ((res.headers.get('content-type') || '').includes('text/html')) return fetch(direct, init);
+            return res;
+        }
+
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    global: { fetch: supabaseFetch },
     auth: {
         storage: window.sessionStorage,
         autoRefreshToken: true,
