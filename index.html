@@ -188,6 +188,39 @@
         #success-message:not(.hidden) p           { animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 1s backwards; }
         #success-message:not(.hidden) #finish-btn { animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 1.1s backwards; }
 
+        /* Убранная из сметы строка «испаряется»: затухает, размывается, поднимается и схлопывается */
+        @keyframes evaporate {
+            0%   { opacity: 1; filter: blur(0); transform: translateY(0); height: var(--h); }
+            55%  { opacity: 0; filter: blur(5px); transform: translateY(-8px); height: var(--h); }
+            100% { opacity: 0; filter: blur(5px); transform: translateY(-8px); height: 0; padding-bottom: 0; margin-block-end: 0; border-bottom-width: 0; }
+        }
+        .row-leave { overflow: hidden; pointer-events: none; animation: evaporate 0.6s ease-in var(--d, 0ms) forwards; }
+        .empty-in { animation: fadeIn 0.4s ease-out 0.3s backwards; }
+
+        /* Плавное закрытие окон: display переключается в none только после завершения перехода.
+           В старых браузерах без поддержки окна просто закрываются мгновенно, как раньше. */
+        #order-modal, #privacy-modal, #category-modal, #service-modal, #admin-pass-modal {
+            transition: opacity 0.25s ease, backdrop-filter 0.25s ease, display 0.25s allow-discrete;
+        }
+        #order-modal.hidden, #privacy-modal.hidden, #category-modal.hidden, #service-modal.hidden, #admin-pass-modal.hidden {
+            opacity: 0; backdrop-filter: blur(0px); pointer-events: none;
+        }
+        #order-modal > div, #privacy-modal > div, #category-modal > div, #service-modal > div, #admin-pass-modal > div {
+            transition: transform 0.25s cubic-bezier(0.4, 0, 1, 1), opacity 0.2s ease;
+        }
+        #order-modal.hidden > div, #privacy-modal.hidden > div, #category-modal.hidden > div, #service-modal.hidden > div, #admin-pass-modal.hidden > div {
+            transform: scale(0.96); opacity: 0;
+        }
+        /* Окно входа администратора раньше появлялось без анимации */
+        #admin-pass-modal:not(.hidden) { animation: modalFadeIn 0.3s ease-out; }
+        #admin-pass-modal:not(.hidden) > div { animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        /* Анимации входа не должны «держать» конечное значение (forwards): от него Chrome не запускает переход закрытия.
+           Конечный кадр совпадает с обычным стилем, поэтому внешне ничего не меняется. */
+        #order-modal:not(.hidden), #privacy-modal:not(.hidden), #category-modal:not(.hidden), #service-modal:not(.hidden),
+        #order-modal:not(.hidden) > div, #privacy-modal:not(.hidden) > div, #category-modal:not(.hidden) > div, #service-modal:not(.hidden) > div {
+            animation-fill-mode: none;
+        }
+
         /* Для тех, у кого в системе включено «уменьшить движение» */
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
@@ -504,7 +537,6 @@
         // Состояние для анимаций
         const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
         let servicesRenderedOnce = false;   // каскадное появление карточек только при первой отрисовке
-        let prevSummary = {};               // что было в смете до изменения: id -> количество
         let shownTotal = 0, totalRaf = 0;   // для плавного пересчёта итоговой суммы
 
         let rawServicesList = [];
@@ -853,12 +885,33 @@
             totalRaf = requestAnimationFrame(step);
         }
 
+        // Убранная из сметы строка «испаряется»: затухает, размывается и схлопывается, затем удаляется
+        function evaporate(el, i) {
+            el.classList.remove('row-enter', 'row-flash');
+            el.style.setProperty('--h', el.offsetHeight + 'px');
+            el.style.setProperty('--d', Math.min(i, 10) * 45 + 'ms');
+            el.classList.add('row-leave');
+            el.addEventListener('animationend', (e) => { if (e.animationName === 'evaporate') el.remove(); });
+            setTimeout(() => el.remove(), 1500);   // подстраховка, если animationend не сработает
+        }
+
         function updateSummary() {
             const summaryList = document.getElementById('summary-list');
-            summaryList.innerHTML = '';
-            const nextSummary = {};
             let total = 0;
             let count = 0;
+
+            // Строки обновляются на месте, а не пересоздаются: так видно, что появилось, изменилось и исчезло
+            const rows = {};
+            [...summaryList.children].forEach(el => {
+                if (el.dataset.key !== undefined && !el.classList.contains('row-leave')) rows[el.dataset.key] = el;
+            });
+
+            let leaving = 0;
+            Object.keys(rows).forEach(k => {
+                if (selectedState[k]) return;
+                evaporate(rows[k], leaving++);
+                delete rows[k];
+            });
 
             Object.keys(selectedState).forEach(k => {
                 const item = selectedState[k];
@@ -866,20 +919,32 @@
                 total += lineTotal;
                 count += item.qty;
 
-                const row = document.createElement('div'); row.className = 'flex justify-between items-start gap-2 border-b border-brand-border/30 pb-1.5';
-                const prevQty = prevSummary[k];
-                if (prevQty === undefined) row.classList.add('row-enter');
-                else if (prevQty !== item.qty) row.classList.add('row-flash');
-                nextSummary[k] = item.qty;
-                const labelSpan = document.createElement('span'); labelSpan.className = 'text-brand-ivory leading-tight';
-                labelSpan.textContent = item.isCounter ? `${item.name} (${item.qty} шт)` : item.name;
-                const priceSpan = document.createElement('span'); priceSpan.className = 'font-mono text-brand-muted shrink-0'; priceSpan.textContent = formatPrice(lineTotal);
-
-                row.appendChild(labelSpan); row.appendChild(priceSpan); summaryList.appendChild(row);
+                let row = rows[k];
+                if (!row) {
+                    row = document.createElement('div');
+                    row.dataset.key = k;
+                    row.className = 'flex justify-between items-start gap-2 border-b border-brand-border/30 pb-1.5 row-enter';
+                    row.innerHTML = '<span class="text-brand-ivory leading-tight"></span><span class="font-mono text-brand-muted shrink-0"></span>';
+                    row.addEventListener('animationend', (e) => { if (e.animationName !== 'evaporate') row.classList.remove('row-enter', 'row-flash'); });
+                    summaryList.appendChild(row);
+                } else if (row._qty !== item.qty) {
+                    row.classList.remove('row-enter', 'row-flash'); void row.offsetWidth; row.classList.add('row-flash');
+                }
+                row._qty = item.qty;
+                row.children[0].textContent = item.isCounter ? `${item.name} (${item.qty} шт)` : item.name;
+                row.children[1].textContent = formatPrice(lineTotal);
             });
 
-            prevSummary = nextSummary;
-            if (count === 0) summaryList.innerHTML = '<p class="text-brand-muted text-center py-8 italic">Услуги не выбраны.</p>';
+            const emptyEl = summaryList.querySelector('[data-empty]');
+            if (count === 0 && !emptyEl) {
+                const p = document.createElement('p');
+                p.dataset.empty = '1';
+                p.className = 'text-brand-muted text-center py-8 italic empty-in';
+                p.textContent = 'Услуги не выбраны.';
+                summaryList.appendChild(p);
+            } else if (count > 0 && emptyEl) {
+                emptyEl.remove();
+            }
 
             const totalPriceEl = document.getElementById('total-price');
             animateTotal(totalPriceEl, total);
@@ -1215,7 +1280,14 @@ async function moveService(serviceId, categoryId, direction) {
         // ==========================================
         // ИНТЕРФЕЙС
         // ==========================================
-        document.getElementById('reset-btn').onclick = () => { selectedState = {}; renderServicesUI(); showToast('Выбор сброшен'); };
+        // Сброс выбора: отметки снимаются на месте (без перерисовки списка), строки сметы «испаряются»
+        function resetSelection() {
+            selectedState = {};
+            document.querySelectorAll('#services-container input.custom-checkbox').forEach(cb => { cb.checked = false; });
+            document.querySelectorAll('#services-container [id^="qty-"]').forEach(el => { el.textContent = '0'; });
+            updateSummary();
+        }
+        document.getElementById('reset-btn').onclick = () => { resetSelection(); showToast('Выбор сброшен'); };
 
         document.getElementById('copy-summary-btn').onclick = async () => {
             let text = 'СМЕТА УСЛУГ МИБ\n-----------------------------------\n';
@@ -1238,21 +1310,19 @@ async function moveService(serviceId, categoryId, direction) {
             document.getElementById('order-modal').classList.remove('hidden');
         };
 
-        document.getElementById('close-modal-btn').onclick = () => {
+        // Закрытие окна заявки: содержимое сбрасываем уже после затухания,
+        // иначе форма «вспыхнет» поверх галочки, пока окно ещё исчезает
+        function closeOrderModal() {
             document.getElementById('order-modal').classList.add('hidden');
-            document.getElementById('order-form').classList.remove('hidden');
-            document.getElementById('success-message').classList.add('hidden');
-            document.getElementById('order-form').reset();
-            document.getElementById('privacy-checkbox').checked = false;
-        };
-
-        document.getElementById('finish-btn').onclick = () => {
-            document.getElementById('order-modal').classList.add('hidden');
-            document.getElementById('order-form').classList.remove('hidden');
-            document.getElementById('success-message').classList.add('hidden');
-            document.getElementById('order-form').reset();
-            document.getElementById('privacy-checkbox').checked = false; 
-        };
+            setTimeout(() => {
+                document.getElementById('order-form').classList.remove('hidden');
+                document.getElementById('success-message').classList.add('hidden');
+                document.getElementById('order-form').reset();
+                document.getElementById('privacy-checkbox').checked = false;
+            }, 320);
+        }
+        document.getElementById('close-modal-btn').onclick = closeOrderModal;
+        document.getElementById('finish-btn').onclick = closeOrderModal;
 
         const contactInput = document.getElementById('client-contact');
         contactInput.addEventListener('input', function() {
