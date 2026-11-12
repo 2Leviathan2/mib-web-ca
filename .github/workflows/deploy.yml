@@ -1,0 +1,28 @@
+# Выкладка сайта на российский хостинг по FTP: при каждом слиянии в main
+# и вручную (Actions -> Deploy to RU hosting -> Run workflow).
+# Ветку feat/github-pages выкладываем для пробной проверки до слияния; после слияния её можно убрать отсюда.
+# Секреты: Settings -> Secrets and variables -> Actions: FTP_HOST, FTP_USER, FTP_PASSWORD, FTP_DIR
+name: Deploy to RU hosting
+on:
+  push:
+    branches: [main, feat/github-pages]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ secrets.FTP_DIR }}
+          protocol: ftps
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            functions/**
+            _headers
+            .nojekyll

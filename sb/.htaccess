@@ -1,0 +1,4 @@
+# Всё, чего нет как файла, отдаёт прокси index.php
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L]
