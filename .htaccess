@@ -1,4 +1,3 @@
-# Кэш как в _headers для Cloudflare
 # Защитные заголовки (те же, что в _headers; HSTS здесь нет: HTTPS на техническом адресе хостинга не наш)
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
@@ -6,6 +5,7 @@
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
   Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://ibanvzomiosaboheuypl.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+  # Кэш как в _headers для Cloudflare
   <Files "index.html">
     Header set Cache-Control "no-cache, must-revalidate"
   </Files>
